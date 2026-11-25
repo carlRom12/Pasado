@@ -14,6 +14,13 @@ const colors = [
 ]
 
 const presets: readonly Preset[] = [nursing]
+const nursingCoverage = [
+  'Community health nursing for individuals, families, population groups, and communities.',
+  'Maternal and child health, including adolescent care, plus human growth and development.',
+  'Medical-surgical nursing covering surgery, oxygenation, fluids and electrolytes, infection, inflammation, immune responses, and cellular changes.',
+  'Medical-surgical nursing covering nutrition, gastrointestinal care, metabolism, endocrine disorders, perception, and coordination.',
+  'Psychiatric and mental health nursing, plus emergency and critical care for patients with life-threatening conditions or acute multi-organ problems.',
+]
 
 type Props = {
   exam?: Exam
@@ -207,6 +214,21 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
             <p>Source: {preset.authority} / RA 9173 §15 · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
             {preset.weightsAssumed && (
               <p className="preset-caution"><span aria-hidden="true">⚠</span> Weights assumed. Check your exam's syllabus.</p>
+            )}
+            {preset.id === nursing.id && (
+              <details className="preset-sources nursing-coverage">
+                <summary>Nursing Practice I–V coverage</summary>
+                <dl>
+                  {nursing.subjects.map(({ name }, index) => (
+                    <div key={name}>
+                      <dt>{name}</dt>
+                      <dd>{nursingCoverage[index]}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <a href="https://www.prc.gov.ph/sites/default/files/exam%20progam%20aug%202026%20nle%20%28nursing%29%20signed.pdf"
+                  target="_blank" rel="noreferrer">August 2026 PRC exam program</a>
+              </details>
             )}
             <details className="preset-sources">
               <summary>See sources</summary>

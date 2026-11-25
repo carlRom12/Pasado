@@ -1498,3 +1498,16 @@ nav a[aria-current="page"] {
     forced-color-adjust: none;
   }
 }
+
+.nursing-coverage dl {
+  display: grid;
+  gap: 10px;
+}
+
+.nursing-coverage dt {
+  font-weight: 800;
+}
+
+.nursing-coverage dd {
+  color: var(--color-muted);
+}
