@@ -76,3 +76,25 @@ it('toggles task completion and rejects stale undo or writes after a rebuild', a
   await database.getTodayPlan(now, true)
   expect(await database.setTaskDone({ ...task, doneAt: 125 }, undefined)).toBe(false)
 })
+
+it('saves and edits score entries without resetting their creation time', async () => {
+  await database.saveScore({ source: '  Mock A  ', date: '2026-11-25', bySubject: { a: 0 }, total: 90 }, undefined, now)
+  const [score] = await database.scores.toArray()
+  expect(score).toMatchObject({ source: 'Mock A', bySubject: { a: 0 }, createdAt: now.getTime() })
+  expect(score.total).toBeUndefined()
+  await database.saveScore({ source: 'Mock B', date: '2026-11-24', bySubject: {}, total: 82.5 }, score.id, now)
+  expect(await database.scores.get(score.id)).toEqual({
+    id: score.id, source: 'Mock B', date: '2026-11-24', bySubject: {}, total: 82.5, createdAt: now.getTime(),
+  })
+  await database.scores.delete(score.id)
+  await expect(database.saveScore(score, score.id, now)).rejects.toThrow('already removed')
+  expect(await database.scores.count()).toBe(0)
+})
+
+it('rejects absent, invalid, and future-dated scores', () => {
+  const fields = { source: 'Practice', date: '2026-11-25', bySubject: {} }
+  expect(() => database.saveScore(fields, undefined, now)).toThrow(RangeError)
+  expect(() => database.saveScore({ ...fields, total: 101 }, undefined, now)).toThrow(RangeError)
+  expect(() => database.saveScore({ ...fields, bySubject: { a: NaN } }, undefined, now)).toThrow(RangeError)
+  expect(() => database.saveScore({ ...fields, date: '2026-11-26', total: 75 }, undefined, now)).toThrow(RangeError)
+})

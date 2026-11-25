@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Setup } from './components/Setup'
 import { Today } from './components/Today'
+import { Scores } from './components/Scores'
 import { db } from './data/db'
 import type { Exam, Subject } from './data/types'
 
@@ -76,6 +77,8 @@ export function App() {
           <Setup exam={setup.exam} subjects={setup.subjects} onSaved={handleSaved} />
         ) : activeTab.id === 'today' && setup.exam ? (
           <Today exam={setup.exam} subjects={setup.subjects} />
+        ) : activeTab.id === 'scores' && setup.exam ? (
+          <Scores exam={setup.exam} subjects={setup.subjects} />
         ) : (
           <h1 id="screen-title">{activeTab.title}</h1>
         )}

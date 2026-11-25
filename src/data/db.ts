@@ -1,7 +1,9 @@
 import Dexie, { type Table } from 'dexie'
-import { dateKey } from './dates'
+import { dateKey, parseDateKey } from './dates'
 import { buildDailyPlan } from './plan'
 import type { Exam, Score, Subject, Task, Topic } from './types'
+
+export type ScoreFields = Pick<Score, 'source' | 'date' | 'total' | 'bySubject'>
 
 export class PasadoDatabase extends Dexie {
   exams!: Table<Exam, Exam['id']>
@@ -83,6 +85,30 @@ export class PasadoDatabase extends Dexie {
       else current.doneAt = doneAt
       await this.tasks.put(current)
       return true
+    })
+  }
+
+  saveScore(fields: ScoreFields, id?: string, now = new Date()): Promise<void> {
+    const source = fields.source.trim()
+    if (!source) throw new RangeError('Enter a score source.')
+    parseDateKey(fields.date)
+    if (fields.date > dateKey(now)) throw new RangeError('Choose today or an earlier date.')
+    const subjectValues = Object.values(fields.bySubject)
+    const values = subjectValues.length ? subjectValues : [fields.total]
+    if (values.some((value) => value === undefined || !Number.isFinite(value) || value < 0 || value > 100)) {
+      throw new RangeError('Enter scores from 0 to 100%.')
+    }
+    const score = { source, date: fields.date, bySubject: fields.bySubject,
+      ...(subjectValues.length ? {} : { total: fields.total }) }
+
+    return this.transaction('rw', this.scores, async () => {
+      if (id !== undefined) {
+        const previous = await this.scores.get(id)
+        if (!previous) throw new Error('This score was already removed.')
+        await this.scores.put({ ...score, id, createdAt: previous.createdAt })
+      } else {
+        await this.scores.add({ ...score, id: crypto.randomUUID(), createdAt: now.getTime() })
+      }
     })
   }
 }
