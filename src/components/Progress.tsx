@@ -1,4 +1,4 @@
-﻿import { format } from 'date-fns'
+import { format } from 'date-fns'
 import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { dateKey, parseDateKey } from '../data/dates'
@@ -32,8 +32,9 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
     return value === undefined ? [] : [{ id: score.id, date: score.date, source: score.source, value }]
   })
   const passingMark = exam.passingMark
-  const summary = readiness(data?.scores ?? [], subjects, passingMark)
-  const ranked = rankSubjects(subjects, data?.scores ?? [], passingMark)
+  const minimum = exam.minPerSubject
+  const summary = readiness(data?.scores ?? [], subjects, passingMark, minimum)
+  const ranked = rankSubjects(subjects, data?.scores ?? [], passingMark, minimum)
   const biggestGap = Math.max(0, ...ranked.map(({ gap }) => gap ?? 0))
   const today = dateKey(new Date())
   const reviewSubjects = new Set(data?.topics.filter((topic) => isReviewDue(topic, today)).map(({ subjectId }) => subjectId))
@@ -48,26 +49,40 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
               <div className="readiness-heading">
                 <div>
                   <h2 id="readiness-title" className="score-caption">Readiness</h2>
-                  <p className="readiness-label">{summary.label}</p>
+                  <p className={'readiness-label' + (summary.label === 'At risk' ? ' readiness-risk' : '')}>
+                    {summary.label === 'At risk' && <><span aria-hidden="true">⚠</span>{' '}</>}{summary.label}
+                  </p>
                 </div>
                 <div className="readiness-score">
                   <strong><span className="sr-only">Latest overall score </span>{summary.latest === undefined ? '–' : percentage(summary.latest)}</strong>
                   <p>of {passingMark}% to pass</p>
                 </div>
               </div>
+              {summary.label === 'At risk' && (
+                <p className="minimum-warning">Below the {minimum}% minimum in: {summary.belowMinimumSubjects.map(({ name }) => name).join(', ')}</p>
+              )}
 
               {points.length ? <ScoreTrend points={points} passingMark={passingMark} /> : (
                 <p className="progress-empty">Log a mock exam score to start your trend.</p>
               )}
               <p className="trend-note">Based on the scores you entered. It's a trend, not a promise.</p>
               <p className="trend-note">Different mock exams have different difficulty.</p>
+              {minimum !== undefined && summary.usesTotalOnly && (
+                <p className="trend-note">Total-only scores can't be checked against the minimum per subject.</p>
+              )}
             </section>
 
             <section className="study-priorities" aria-labelledby="priority-title">
               <h2 id="priority-title">Where to spend your time</h2>
+              {minimum !== undefined && ranked.length > 0 && (
+                <p className="priority-legend">
+                  <span><i className="legend-pass" aria-hidden="true" /> Pass {passingMark}%</span>
+                  <span><i className="legend-minimum" aria-hidden="true" /> Minimum {minimum}%</span>
+                </p>
+              )}
               {ranked.length ? (
                 <ol className="priority-list">
-                  {ranked.map(({ subject, gap, average }, index) => {
+                  {ranked.map(({ subject, gap, average, belowMinimum }, index) => {
                     const reasons: string[] = []
                     if (gap === undefined) reasons.push('No scores yet')
                     else if (gap > 0 && gap === biggestGap) reasons.push('Biggest gap to ' + passingMark + '%')
@@ -88,11 +103,15 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
                             </strong>
                           </div>
                           <div className="priority-track" role="img"
-                            aria-label={(average === undefined ? 'No subject average' : 'Subject average ' + percentage(average)) + ', passing mark ' + passingMark + '%'}>
+                            aria-label={(average === undefined ? 'No subject average' : 'Subject average ' + percentage(average))
+                              + ', passing mark ' + passingMark + '%' + (minimum === undefined ? '' : ', minimum ' + minimum + '%')}>
                             <span className="priority-fill" style={{ width: (average ?? 0) + '%', background: subject.color }} />
                             <span className="passing-marker" style={{ left: 'clamp(1px, ' + passingMark + '%, calc(100% - 1px))' }} />
+                            {minimum !== undefined && <span className="minimum-marker"
+                              style={{ left: 'clamp(1px, ' + minimum + '%, calc(100% - 1px))' }} />}
                           </div>
                           <p>Weight {subject.weight}% · {reasons.join(' · ')}</p>
+                          {belowMinimum && <span className="below-minimum-tag"><span aria-hidden="true">⚠</span> Below minimum</span>}
                         </div>
                       </li>
                     )

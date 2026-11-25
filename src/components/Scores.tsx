@@ -1,10 +1,10 @@
-﻿import { format } from 'date-fns'
+import { format } from 'date-fns'
 import { liveQuery } from 'dexie'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { parseDateKey } from '../data/dates'
 import { db } from '../data/db'
-import { overallScore } from '../data/plan'
+import { isBelowMinimum, overallScore } from '../data/plan'
 import type { Exam, Score, Subject } from '../data/types'
 import { useLocalDay } from '../hooks/useLocalDay'
 
@@ -121,7 +121,12 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
             <section className="score-subjects" aria-labelledby="subject-score-title">
               <h2 id="subject-score-title" className="score-caption">Your score per subject</h2>
               <div className="score-card score-subject-list">
-                {subjects.map((subject) => (
+                {subjects.map((subject, index) => {
+                  const value = subjectInputs[subject.id] ?? ''
+                  const belowMinimum = value !== '' && Number(value) >= 0
+                    && isBelowMinimum(Number(value), exam.minPerSubject)
+                  const noteId = 'subject-minimum-note-' + index
+                  return (
                   <label className="score-subject" key={subject.id}>
                     <span className="subject-dot" aria-hidden="true" style={{ backgroundColor: subject.color }} />
                     <span className="score-subject-name">
@@ -130,13 +135,17 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                     </span>
                     <span className="score-number">
                       <input aria-label={subject.name + ' score (%)'} type="number" min="0" max="100" step="any" inputMode="decimal"
-                        value={subjectInputs[subject.id] ?? ''}
+                        value={value} aria-describedby={belowMinimum ? noteId : undefined}
                         onChange={(event) => setSubjectInputs({ ...subjectInputs, [subject.id]: event.target.value })}
                         placeholder="–" />
                       <span aria-hidden="true">%</span>
                     </span>
+                    <span id={noteId} className="score-minimum-note" aria-live="polite">
+                      {belowMinimum && <><span aria-hidden="true">⚠</span> Below the {exam.minPerSubject}% minimum</>}
+                    </span>
                   </label>
-                ))}
+                  )
+                })}
               </div>
             </section>
           )}

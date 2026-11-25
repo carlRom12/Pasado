@@ -1,18 +1,18 @@
-﻿import { format } from 'date-fns'
+import { format } from 'date-fns'
 import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { db } from '../data/db'
 import { useLocalDay } from '../hooks/useLocalDay'
 import { parseDateKey } from '../data/dates'
-import { daysToGo, isReviewDue, studyMinutes, trackingStatus } from '../data/plan'
-import type { Exam, Subject, Task, Topic } from '../data/types'
+import { daysToGo, isReviewDue, rankSubjects, studyMinutes, trackingStatus } from '../data/plan'
+import type { Exam, Score, Subject, Task, Topic } from '../data/types'
 
 export function Today({ exam, subjects }: { exam: Exam; subjects: Subject[] }) {
   const day = useLocalDay()
   return <DailyView key={day} exam={exam} subjects={subjects} day={day} />
 }
 
-type DailyData = { history: Task[]; topics: Topic[] }
+type DailyData = { history: Task[]; topics: Topic[]; scores: Score[] }
 type Undo = { task: Task; subject: string }
 
 function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; day: string }) {
@@ -23,9 +23,10 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
 
   useEffect(() => {
     let active = true
-    const updates = liveQuery(() => db.transaction('r', db.tasks, db.topics, async () => ({
+    const updates = liveQuery(() => db.transaction('r', db.tasks, db.topics, db.scores, async () => ({
       history: await db.tasks.where('date').belowOrEqual(day).toArray(),
       topics: await db.topics.toArray(),
+      scores: await db.scores.where('[date+createdAt]').belowOrEqual([day, Number.MAX_SAFE_INTEGER]).toArray(),
     })))
     let subscription: ReturnType<typeof updates.subscribe> | undefined
     db.getTodayPlan(parseDateKey(day)).catch(() => {
@@ -51,6 +52,10 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
   const hasHistory = overall.completed > 0 || history.some((task) => task.date < day)
   const status = hasHistory ? trackingStatus(history, day) : 'Just started'
   const remaining = daysToGo(exam.date, day)
+  const belowMinimum = exam.minPerSubject === undefined ? [] :
+    rankSubjects(subjects, data?.scores ?? [], exam.passingMark, exam.minPerSubject)
+      .filter((entry) => entry.belowMinimum).map(({ subject }) => subject)
+  const startsBelowMinimum = belowMinimum.some(({ id }) => id === tasks[0]?.subjectId)
 
   async function write(operation: () => Promise<void>) {
     setBusy(true)
@@ -126,6 +131,12 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
           <h2 id="daily-plan-title">Today's plan</h2>
           {data && <p aria-live="polite">{duration(completed)} of {duration(exam.hoursPerDay * 60)}</p>}
         </div>
+        {!!belowMinimum.length && (
+          <p className="minimum-warning">
+            <span aria-hidden="true">⚠</span> Below the minimum in {belowMinimum.map(({ name }) => name).join(', ')}.{' '}
+            {startsBelowMinimum ? "Today's plan starts there." : "Rebuild today's plan to prioritize those subjects."}
+          </p>
+        )}
         {error && <p role="alert" className="setup-error">{error}</p>}
         {data ? tasks.length ? (
           <ul className="daily-tasks">
