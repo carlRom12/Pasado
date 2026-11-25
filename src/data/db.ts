@@ -50,6 +50,7 @@ export class PasadoDatabase extends Dexie {
       const previousSubjects = await this.subjects.toArray()
       const byId = new Map(previousSubjects.map((subject) => [subject.id, subject]))
       const changed = previousExam?.hoursPerDay !== exam.hoursPerDay
+        || previousExam?.minPerSubject !== exam.minPerSubject
         || previousSubjects.length !== subjects.length
         || subjects.some((subject) => {
           const previous = byId.get(subject.id)

@@ -39,12 +39,20 @@ export function overallScore(score: Score, subjects: readonly Subject[]): number
   return weight > 0 ? weighted / weight : undefined
 }
 
-export function rankSubjects(subjects: readonly Subject[], scores: readonly Score[], passingMark: number) {
+export function isBelowMinimum(average: number | undefined, minPerSubject: number | undefined): boolean {
+  return average !== undefined && minPerSubject !== undefined && average < minPerSubject
+}
+
+export function rankSubjects(subjects: readonly Subject[], scores: readonly Score[], passingMark: number, minPerSubject?: number) {
   return subjects.map((subject) => {
     const average = subjectAverage(subject.id, scores)
     const gap = average === undefined ? undefined : passingMark - average
-    return { subject, average, gap, priority: subject.weight * (gap === undefined ? 10 : Math.max(gap, 0)) }
-  }).sort((a, b) => b.priority - a.priority || a.subject.order - b.subject.order)
+    const minimumGap = average === undefined || minPerSubject === undefined ? 0 : Math.max(minPerSubject - average, 0)
+    return { subject, average, gap, minimumGap, belowMinimum: minimumGap > 0,
+      priority: subject.weight * (gap === undefined ? 10 : Math.max(gap, 0)) }
+  }).sort((a, b) => b.minimumGap - a.minimumGap
+    || (a.belowMinimum ? 0 : b.priority - a.priority)
+    || a.subject.order - b.subject.order)
 }
 
 export function reviewDueOn(topic: Topic): string | undefined {
@@ -72,15 +80,15 @@ export function markTopicWeak(topic: Topic): Topic {
   return { ...topic, weak: true, lastReviewedOn: undefined, reviewStep: 0 }
 }
 
-function splitBlocks(total: number, priorities: readonly number[]): number[] {
+function splitBlocks(total: number, priorities: readonly number[], floors: readonly number[]): number[] {
   const weight = priorities.reduce((sum, value) => sum + value, 0)
-  const blocks = priorities.map((priority) => Math.max(1, Math.round(total * priority / weight)))
+  const blocks = priorities.map((priority, index) => Math.max(floors[index], Math.round(total * priority / weight)))
   let remaining = total - blocks.reduce((sum, value) => sum + value, 0)
   if (remaining >= 0) {
     blocks[0] += remaining
   } else {
     for (let index = 0; index < blocks.length && remaining < 0; index += 1) {
-      const reduction = Math.min(blocks[index] - 1, -remaining)
+      const reduction = Math.min(blocks[index] - floors[index], -remaining)
       blocks[index] -= reduction
       remaining += reduction
     }
@@ -99,14 +107,20 @@ export function buildDailyPlan(
   const limit = Math.min(budget, 4)
   if (limit < 1) return []
 
-  const ranked = rankSubjects(subjects, scores.filter((score) => score.date <= today), exam.passingMark)
-  const focus = ranked.filter(({ priority }) => priority > 0).slice(0, limit)
-  const recaps = ranked.filter(({ gap }) => gap !== undefined && gap <= 0)
-  const selected = [...focus, ...recaps.slice(0, limit - focus.length)]
+  const ranked = rankSubjects(subjects, scores.filter((score) => score.date <= today), exam.passingMark, exam.minPerSubject)
+  const eligible = ranked.filter(({ priority, belowMinimum }) => belowMinimum || priority > 0).slice(0, limit)
+  const belowCount = eligible.filter(({ belowMinimum }) => belowMinimum).length
+  const belowFloor = budget >= belowCount * 2 ? 2 : 1
+  // Reserve the extra blocks before filling the remaining slots with lower priorities.
+  const taskLimit = Math.min(limit, budget - belowCount * (belowFloor - 1))
+  const focus = eligible.slice(0, taskLimit)
+  const recaps = ranked.filter(({ gap, belowMinimum }) => !belowMinimum && gap !== undefined && gap <= 0)
+  const selected = [...focus, ...recaps.slice(0, taskLimit - focus.length)]
   if (!selected.length) return []
 
   const blocks = focus.length
-    ? [...splitBlocks(budget - (selected.length - focus.length), focus.map(({ priority }) => priority)),
+    ? [...splitBlocks(budget - (selected.length - focus.length), focus.map(({ priority, minimumGap }) => priority || minimumGap),
+        focus.map(({ belowMinimum }) => belowMinimum ? belowFloor : 1)),
         ...selected.slice(focus.length).map(() => 1)]
     : selected.map((_, index) =>
         Math.floor(budget / selected.length) + Number(index < budget % selected.length))
@@ -144,17 +158,22 @@ export function trackingStatus(tasks: readonly Task[], today: string) {
   return fraction >= 0.9 ? 'On track' : 'Behind'
 }
 
-export function readiness(scores: readonly Score[], subjects: readonly Subject[], passingMark: number) {
-  const values = newestFirst(scores)
-    .map((score) => overallScore(score, subjects))
-    .filter((value) => value !== undefined)
+export function readiness(scores: readonly Score[], subjects: readonly Subject[], passingMark: number, minPerSubject?: number) {
+  const recent = newestFirst(scores)
+    .map((score) => ({ score, value: overallScore(score, subjects) }))
+    .filter(({ value }) => value !== undefined)
     .slice(0, 3)
+  const values = recent.map(({ value }) => value!)
+  const belowMinimumSubjects = rankSubjects(subjects, scores, passingMark, minPerSubject)
+    .filter(({ belowMinimum }) => belowMinimum).map(({ subject }) => subject)
+  const usesTotalOnly = recent.some(({ score }) => Object.keys(score.bySubject).length === 0)
   const average = values.length ? mean(values) : undefined
   let label = 'Not enough scores yet'
   if (values.length >= 2 && average !== undefined) {
-    if (average >= passingMark) label = 'Likely ready'
-    else if (average >= passingMark - 10) label = 'Getting close'
-    else label = 'Not yet'
+    if (average < passingMark - 10) label = 'Not yet'
+    else if (belowMinimumSubjects.length) label = 'At risk'
+    else if (average >= passingMark) label = 'Likely ready'
+    else label = 'Getting close'
   }
-  return { label, latest: values[0], average }
+  return { label, latest: values[0], average, belowMinimumSubjects, usesTotalOnly }
 }

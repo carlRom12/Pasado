@@ -128,3 +128,56 @@ it('ignores future scores and uses the full budget when only recap tasks are eli
   expect(buildDailyPlan(exam, active, [future], [], today)).toMatchObject([{ kind: 'focus', minutes: 120 }])
   expect(buildDailyPlan(exam, active, [passing], [], today)).toMatchObject([{ kind: 'recap', minutes: 120 }])
 })
+
+describe('minimum subject rating', () => {
+  const configured = { ...exam, minPerSubject: 60 }
+  const total: Score = { ...mock, id: 'overall', total: 100, bySubject: {} }
+  const uneven: Score = { ...mock, bySubject: { fundamentals: 95, pharmacology: 55 } }
+
+  it('reports At risk even above the overall target and identifies total-only evidence', () => {
+    const result = readiness([uneven, total], subjects, 75, 60)
+    expect(result.average).toBeGreaterThan(75)
+    expect(result.label).toBe('At risk')
+    expect(result.belowMinimumSubjects.map(({ id }) => id)).toEqual(['pharmacology'])
+    expect(result.usesTotalOnly).toBe(true)
+    expect(readiness([uneven], subjects, 75, 60).label).toBe('Not enough scores yet')
+    expect(readiness([uneven, { ...total, total: 30 }], subjects, 75, 60).label).toBe('Not yet')
+  })
+
+  it('ranks by minimum shortfall ahead of a larger weighted gap without flagging unscored subjects', () => {
+    const entries = [{ ...mock, bySubject: { fundamentals: 58, pharmacology: 53, 'medical-surgical': 60 } }]
+    const ranked = rankSubjects(subjects, entries, 75, 60)
+    expect(ranked.slice(0, 3).map(({ subject }) => subject.id)).toEqual(['pharmacology', 'fundamentals', 'medical-surgical'])
+    expect(ranked[1].priority).toBeLessThan(ranked[2].priority)
+    expect(ranked.slice(2).every(({ belowMinimum }) => !belowMinimum)).toBe(true)
+  })
+
+  it('keeps the v1 results for an exam without a minimum', () => {
+    expect(readiness([uneven, total], subjects, 75).label).toBe('Likely ready')
+    expect(rankSubjects(subjects, [mock], 75).map(({ subject }) => subject.id))
+      .toEqual(['medical-surgical', 'pharmacology', 'mental-health', 'community-health', 'fundamentals'])
+    expect(buildDailyPlan(exam, subjects, [mock], [], today).map(({ minutes }) => minutes)).toEqual([60, 30, 15, 15])
+  })
+
+  it('reserves at least 30 minutes for a below-minimum subject when the budget fits', () => {
+    const custom = subjects.slice(0, 2).map((subject, index) => ({ ...subject, weight: index ? 0 : 100 }))
+    const entries = [{ ...mock, bySubject: { fundamentals: 60, pharmacology: 59 } }]
+    const plan = buildDailyPlan(configured, custom, entries, [], today)
+    expect(plan[0]).toMatchObject({ subjectId: 'pharmacology', minutes: 30, kind: 'focus' })
+    expect(studyMinutes(plan).planned).toBe(120)
+  })
+
+  it('keeps all selected tasks at the largest shared floor when 30 minutes each cannot fit', () => {
+    const entries = [{ ...mock, bySubject: Object.fromEntries(subjects.map(({ id }) => [id, 50])) }]
+    const plan = buildDailyPlan({ ...configured, hoursPerDay: 1 }, subjects, entries, [], today)
+    expect(plan.map(({ minutes }) => minutes)).toEqual([15, 15, 15, 15])
+  })
+})
+
+it('drops lower-priority tasks when their slots would crowd out the 30-minute floor', () => {
+  const entries = [{ ...mock, bySubject: { fundamentals: 59, pharmacology: 65, 'medical-surgical': 65 } }]
+  const plan = buildDailyPlan({ ...exam, hoursPerDay: 1, minPerSubject: 60 }, subjects, entries, [], today)
+  expect(plan[0]).toMatchObject({ subjectId: 'fundamentals', minutes: 30 })
+  expect(plan).toHaveLength(3)
+  expect(studyMinutes(plan).planned).toBe(60)
+})

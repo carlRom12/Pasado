@@ -131,7 +131,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       return
     }
 
-    const nextExam: Exam = { id: 'main', name: name.trim(), date: examDate, passingMark, hoursPerDay: hours }
+    const nextExam: Exam = { ...exam, id: 'main', name: name.trim(), date: examDate, passingMark, hoursPerDay: hours }
     const nextSubjects = subjects.map((subject, order) => ({ ...subject, order }))
     setSaving(true)
     setSaved(false)
