@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react'
 import type { DragEvent, FormEvent, KeyboardEvent } from 'react'
 import { db } from '../data/db'
-import { dateKey } from '../data/dates'
+import { useLocalDay } from '../hooks/useLocalDay'
 import { daysToGo } from '../data/plan'
 import type { Exam, Subject } from '../data/types'
 import { SubjectTopics } from './SubjectTopics'
@@ -26,6 +26,7 @@ function numberInRange(value: string, minimum: number, maximum: number): number 
 }
 
 export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
+  const today = useLocalDay()
   const [name, setName] = useState(exam?.name ?? '')
   const [examDate, setExamDate] = useState(exam?.date ?? '')
   const [mark, setMark] = useState(String(exam?.passingMark ?? 75))
@@ -40,7 +41,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [setupError, setSetupError] = useState('')
 
-  const days = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? daysToGo(examDate, dateKey(new Date())) : undefined
+  const days = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? daysToGo(examDate, today) : undefined
   const total = subjects.reduce((sum, subject) => sum + Math.round(subject.weight * 100), 0) / 100
 
   function edit(subject?: Subject) {
@@ -60,7 +61,11 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       return
     }
 
-    const fields = { name: editor.name.trim(), weight: Math.round(weight * 100) / 100, color: editor.color }
+    if (Math.round(weight * 100) / 100 !== weight) {
+      setEditorError('Use up to two decimal places for the weight.')
+      return
+    }
+    const fields = { name: editor.name.trim(), weight, color: editor.color }
     if (editor.id) {
       setSubjects(subjects.map((subject) => subject.id === editor.id ? { ...subject, ...fields } : subject))
       setMessage(fields.name + ' updated.')
@@ -117,6 +122,10 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       setSetupError('Enter an exam name, a valid date, and a passing mark from 0 to 100%.')
       return
     }
+    if (days < 0) {
+      setSetupError('Choose today or a later exam date.')
+      return
+    }
     if (!exam && !subjects.length) {
       setSetupError('Add your first subject to build a plan.')
       return
@@ -131,8 +140,8 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       await db.saveSetup(nextExam, nextSubjects)
       onSaved(nextExam, nextSubjects)
       setSaved(true)
-    } catch {
-      setSetupError('Could not save your setup. Try again.')
+    } catch (failure) {
+      setSetupError(failure instanceof RangeError ? failure.message : 'Could not save your setup. Try again.')
     } finally {
       setSaving(false)
     }
@@ -153,7 +162,8 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
         <div className="setup-field-row">
           <label className="setup-field">
             <span>Exam date</span>
-            <input type="date" value={examDate} onChange={(event) => setExamDate(event.target.value)} required />
+            <input type="date" min={today} max="9999-12-31" value={examDate}
+              onChange={(event) => setExamDate(event.target.value)} required />
           </label>
           <label className="setup-field">
             <span>Passing mark</span>
@@ -188,7 +198,9 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
             </p>
           </div>
           <p className="subject-help">Add any subject you like. Set each weight to match your exam's official syllabus.</p>
-          {!!subjects.length && total !== 100 && (
+          {!!subjects.length && total === 0 ? (
+            <p className="weight-note">Give at least one subject a weight above 0% to build a focus plan.</p>
+          ) : !!subjects.length && total !== 100 && (
             <p className="weight-note">Weights add up to {total}%. Pasado adjusts the calculation using the weights you enter.</p>
           )}
 
@@ -242,7 +254,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
                   <label className="setup-field">
                     <span>Weight</span>
                     <span className="setup-percent">
-                      <input type="number" step="any" value={editor.weight}
+                      <input type="number" min="0" max="100" step="0.01" value={editor.weight}
                         onChange={(event) => setEditor({ ...editor, weight: event.target.value })} />
                       <span aria-hidden="true">%</span>
                     </span>

@@ -120,3 +120,11 @@ describe('daily plans and reviews', () => {
     expect(trackingStatus([older, future], today)).toBe('Just started')
   })
 })
+
+it('ignores future scores and uses the full budget when only recap tasks are eligible', () => {
+  const active = subjects.slice(0, 2).map((subject, index) => ({ ...subject, weight: index ? 0 : 100 }))
+  const passing = { ...mock, bySubject: { fundamentals: 80, pharmacology: 60 } }
+  const future = { ...passing, date: '2026-11-26' }
+  expect(buildDailyPlan(exam, active, [future], [], today)).toMatchObject([{ kind: 'focus', minutes: 120 }])
+  expect(buildDailyPlan(exam, active, [passing], [], today)).toMatchObject([{ kind: 'recap', minutes: 120 }])
+})

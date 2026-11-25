@@ -28,6 +28,16 @@ export class PasadoDatabase extends Dexie {
   }
 
   saveSetup(exam: Exam, subjects: readonly Subject[], now = new Date()): Promise<void> {
+    parseDateKey(exam.date)
+    if (exam.date < dateKey(now)) throw new RangeError('Choose today or a later exam date.')
+    const name = exam.name.trim()
+    if (!name) throw new RangeError('Enter an exam name.')
+    if (!Number.isFinite(exam.passingMark) || exam.passingMark < 0 || exam.passingMark > 100) {
+      throw new RangeError('Enter a passing mark from 0 to 100%.')
+    }
+    if (!Number.isInteger(exam.hoursPerDay * 2) || exam.hoursPerDay < 1 || exam.hoursPerDay > 12) {
+      throw new RangeError('Choose 1 to 12 study hours in half-hour steps.')
+    }
     const tables = [this.exams, this.subjects, this.topics, this.scores, this.tasks, this.plannedDays]
     return this.transaction('rw', tables, async () => {
       const previousExam = await this.exams.get('main')
@@ -41,7 +51,7 @@ export class PasadoDatabase extends Dexie {
             || previous.name !== subject.name || previous.color !== subject.color
         })
 
-      await this.exams.put(exam)
+      await this.exams.put({ ...exam, name })
       for (const subject of subjects) byId.delete(subject.id)
       if (byId.size) await this.topics.where('subjectId').anyOf([...byId.keys()]).delete()
       await this.subjects.bulkDelete([...byId.keys()])

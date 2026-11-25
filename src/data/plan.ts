@@ -99,18 +99,17 @@ export function buildDailyPlan(
   const limit = Math.min(budget, 4)
   if (limit < 1) return []
 
-  const ranked = rankSubjects(subjects, scores, exam.passingMark)
+  const ranked = rankSubjects(subjects, scores.filter((score) => score.date <= today), exam.passingMark)
   const focus = ranked.filter(({ priority }) => priority > 0).slice(0, limit)
   const recaps = ranked.filter(({ gap }) => gap !== undefined && gap <= 0)
   const selected = [...focus, ...recaps.slice(0, limit - focus.length)]
   if (!selected.length) return []
 
-  const allPassing = recaps.length === subjects.length
   const blocks = focus.length
     ? [...splitBlocks(budget - (selected.length - focus.length), focus.map(({ priority }) => priority)),
         ...selected.slice(focus.length).map(() => 1)]
     : selected.map((_, index) =>
-        allPassing ? Math.floor(budget / selected.length) + Number(index < budget % selected.length) : 1)
+        Math.floor(budget / selected.length) + Number(index < budget % selected.length))
 
   const due = topics.filter((topic) => isReviewDue(topic, today)).sort((a, b) =>
     (reviewDueOn(a) ?? '').localeCompare(reviewDueOn(b) ?? '') || a.id.localeCompare(b.id))

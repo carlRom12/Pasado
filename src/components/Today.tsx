@@ -1,35 +1,11 @@
-﻿import { addDays, format, startOfDay } from 'date-fns'
+﻿import { format } from 'date-fns'
 import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { db } from '../data/db'
-import { dateKey, parseDateKey } from '../data/dates'
+import { useLocalDay } from '../hooks/useLocalDay'
+import { parseDateKey } from '../data/dates'
 import { daysToGo, isReviewDue, studyMinutes, trackingStatus } from '../data/plan'
 import type { Exam, Subject, Task, Topic } from '../data/types'
-
-function useLocalDay() {
-  const [day, setDay] = useState(() => dateKey(new Date()))
-
-  useEffect(() => {
-    let timer: number
-    function refresh() {
-      window.clearTimeout(timer)
-      const now = new Date()
-      setDay(dateKey(now))
-      const midnight = startOfDay(addDays(now, 1)).getTime()
-      timer = window.setTimeout(refresh, midnight - now.getTime())
-    }
-    refresh()
-    window.addEventListener('focus', refresh)
-    document.addEventListener('visibilitychange', refresh)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('focus', refresh)
-      document.removeEventListener('visibilitychange', refresh)
-    }
-  }, [])
-
-  return day
-}
 
 export function Today({ exam, subjects }: { exam: Exam; subjects: Subject[] }) {
   const day = useLocalDay()

@@ -2,16 +2,18 @@
 import { liveQuery } from 'dexie'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { dateKey, parseDateKey } from '../data/dates'
+import { parseDateKey } from '../data/dates'
 import { db } from '../data/db'
 import { overallScore } from '../data/plan'
 import type { Exam, Score, Subject } from '../data/types'
+import { useLocalDay } from '../hooks/useLocalDay'
 
 export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) {
-  const today = dateKey(new Date())
+  const today = useLocalDay()
   const [scores, setScores] = useState<Score[]>()
   const [source, setSource] = useState('')
-  const [date, setDate] = useState(today)
+  const [dateOverride, setDate] = useState<string>()
+  const date = dateOverride ?? today
   const [subjectInputs, setSubjectInputs] = useState<Record<string, string>>({})
   const [total, setTotal] = useState('')
   const [editing, setEditing] = useState<Score>()
@@ -46,7 +48,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
   function startEditing(score?: Score) {
     setEditing(score)
     setSource(score?.source ?? '')
-    setDate(score?.date ?? today)
+    setDate(score?.date)
     setSubjectInputs(Object.fromEntries(subjects.flatMap(({ id }) =>
       score && Object.hasOwn(score.bySubject, id) ? [[id, String(score.bySubject[id])]] : [])))
     setTotal(score?.total === undefined ? '' : String(score.total))
@@ -111,7 +113,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
             </label>
             <label className="setup-field">
               <span>Date</span>
-              <input type="date" value={date} max={today} onChange={(event) => setDate(event.target.value)} required />
+              <input type="date" value={date} min="0001-01-01" max={today} onChange={(event) => setDate(event.target.value)} required />
             </label>
           </div>
 

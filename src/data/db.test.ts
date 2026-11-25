@@ -128,3 +128,15 @@ it('advances and restores a review schedule with the saved task tick', async () 
   await database.saveSetup(exam, [], now)
   expect(await database.topics.count()).toBe(0)
 })
+
+it('rejects past or invalid exam dates and out-of-range settings without replacing saved setup', async () => {
+  const exam = { id: 'main' as const, name: 'Exam', date: '2026-11-25', passingMark: 75, hoursPerDay: 1 }
+  await database.saveSetup(exam, [], now)
+  expect(() => database.saveSetup({ ...exam, date: '2026-11-24' }, [], now)).toThrow('today or a later')
+  expect(() => database.saveSetup({ ...exam, date: '2026-11-31' }, [], now)).toThrow(RangeError)
+  expect(() => database.saveSetup({ ...exam, passingMark: 101 }, [], now)).toThrow(RangeError)
+  expect(() => database.saveSetup({ ...exam, hoursPerDay: 1.25 }, [], now)).toThrow(RangeError)
+  expect(await database.exams.get('main')).toEqual(exam)
+  await database.saveSetup({ ...exam, date: '2026-11-26' }, [], now)
+  expect((await database.exams.get('main'))?.date).toBe('2026-11-26')
+})
