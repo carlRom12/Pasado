@@ -203,3 +203,14 @@ it('keeps partial mocks out of the overall trend while using them for subject ri
     belowMinimumSubjects: [subjects[0]],
   })
 })
+
+it('includes all five Nursing sections when time permits and respects a shorter budget', () => {
+  const nursing = { ...exam, presetId: 'prc-nursing', hoursPerDay: 3 }
+  const equalWeights = subjects.map((subject) => ({ ...subject, weight: 20 }))
+  const plan = buildDailyPlan(nursing, equalWeights, [], [], today)
+  expect(plan.map(({ subjectId }) => subjectId)).toEqual(equalWeights.map(({ id }) => id))
+  expect(studyMinutes(plan).planned).toBe(180)
+  const shorter = buildDailyPlan({ ...nursing, hoursPerDay: 1 }, equalWeights, [], [], today)
+  expect(shorter).toHaveLength(4)
+  expect(studyMinutes(shorter).planned).toBe(60)
+})
