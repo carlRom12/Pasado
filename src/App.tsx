@@ -2,6 +2,7 @@
 import { Setup } from './components/Setup'
 import { Today } from './components/Today'
 import { Scores } from './components/Scores'
+import { Progress } from './components/Progress'
 import { db } from './data/db'
 import type { Exam, Subject } from './data/types'
 
@@ -79,6 +80,8 @@ export function App() {
           <Today exam={setup.exam} subjects={setup.subjects} />
         ) : activeTab.id === 'scores' && setup.exam ? (
           <Scores exam={setup.exam} subjects={setup.subjects} />
+        ) : activeTab.id === 'progress' && setup.exam ? (
+          <Progress exam={setup.exam} subjects={setup.subjects} />
         ) : (
           <h1 id="screen-title">{activeTab.title}</h1>
         )}
