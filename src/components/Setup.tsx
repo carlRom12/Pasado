@@ -235,9 +235,9 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
         </div>
 
         <label className="setup-field">
-          <span>Minimum per subject (optional)</span>
+          <span id="minimum-label">Minimum per subject (optional)</span>
           <span className="setup-percent">
-            <input type="number" min="0" max="100" step="any" value={minimum} aria-describedby="minimum-help"
+            <input type="number" min="0" max="100" step="any" value={minimum} aria-labelledby="minimum-label" aria-describedby="minimum-help"
               onChange={(event) => setMinimum(event.target.value)} />
             <span aria-hidden="true">%</span>
           </span>
@@ -267,7 +267,10 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               <span className="sr-only">{total === 100 ? ' (complete)' : ' (check weights)'}</span>
             </p>
           </div>
-          <p className="subject-help">Add any subject you like. Set each weight to match your exam's official syllabus.</p>
+          <p className="subject-help">
+            Weight is how much a subject counts toward your overall score. Use the numbers from your exam's official syllabus or table of specifications.
+            If your exam doesn't weight subjects, give them equal weights. Pasado also uses weights to decide what to study first: it multiplies each subject's weight by how far you are below your passing mark.
+          </p>
           {!!subjects.length && total === 0 ? (
             <p className="weight-note">Give at least one subject a weight above 0% to build a focus plan.</p>
           ) : !!subjects.length && total !== 100 && (

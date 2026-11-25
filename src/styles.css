@@ -1424,8 +1424,10 @@ nav a[aria-current="page"] {
 }
 
 .score-minimum-note:empty {
-  height: 0;
-  margin-top: -10px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 
 .minimum-warning {
@@ -1485,4 +1487,29 @@ nav a[aria-current="page"] {
 
 .passing-marker:has(+ .minimum-marker) {
   inset-block: -5px 3px;
+}
+
+@media (forced-colors: active) {
+  .legend-pass,
+  .legend-minimum,
+  .minimum-marker {
+    border-color: CanvasText;
+  }
+
+  .passing-marker {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .priority-track,
+  .below-minimum-tag,
+  .minimum-warning,
+  .device-card .preset-caution {
+    outline: 1px solid CanvasText;
+  }
+
+  .priority-fill {
+    background: Highlight !important;
+    forced-color-adjust: none;
+  }
 }

@@ -67,6 +67,9 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
               )}
               <p className="trend-note">Based on the scores you entered. It's a trend, not a promise.</p>
               <p className="trend-note">Different mock exams have different difficulty.</p>
+              {minimum !== undefined && (
+                <p className="trend-note">Pasado checks the minimum using your last three recorded scores for each subject. Subjects without scores have an unknown rating.</p>
+              )}
               {minimum !== undefined && summary.usesTotalOnly && (
                 <p className="trend-note">Total-only scores can't be checked against the minimum per subject.</p>
               )}
