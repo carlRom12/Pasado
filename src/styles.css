@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans Variable", sans-serif;
+  --color-bg: #f6f4fb;
+  --color-surface: #ffffff;
+  --color-border: #dedaee;
+  --color-divider: #eae7f5;
+  --color-ink: #1b1b3a;
+  --color-muted: #54516e;
+  --color-indigo: #4b3fd6;
+  --color-indigo-text: #3a2fb8;
+  --color-tint: #eeebfb;
+  --color-gold: #ffc83d;
+  --color-success: #0e7a59;
+  --color-success-tint: #ddf3ea;
+  --color-caution: #7a4b00;
+  --color-caution-tint: #ffefc2;
+  --color-low: #b3321f;
+  --radius-card: 24px;
+  --radius-input: 16px;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-indigo);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  min-height: 100dvh;
+}
+
+main {
+  width: min(100%, 720px);
+  margin-inline: auto;
+  padding: 32px 20px calc(88px + env(safe-area-inset-bottom));
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.12;
+}
+
+nav {
+  position: fixed;
+  inset: auto 0 0;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.brand {
+  display: none;
+}
+
+nav ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+nav a {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 9999px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+nav a[aria-current="page"] {
+  background: var(--color-tint);
+  color: var(--color-indigo-text);
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 224px minmax(0, 1fr);
+  }
+
+  nav {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100dvh;
+    padding: 32px 16px;
+    border-top: 0;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .brand {
+    display: block;
+    margin: 0 16px 32px;
+    font-size: 1.5rem;
+    font-weight: 800;
+  }
+
+  nav ul {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  nav a {
+    justify-items: start;
+    padding-inline: 16px;
+  }
+
+  main {
+    padding: 48px 24px;
+  }
+}
