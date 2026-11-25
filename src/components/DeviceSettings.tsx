@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { exportBackup, parseBackup, restoreBackup } from '../data/backup'
 import { dateKey } from '../data/dates'
@@ -28,7 +28,7 @@ export function DeviceSettings({ configured, installation }: {
           </>
         )}
       </section>
-      <BackupSettings />
+      <BackupSettings configured={configured} />
     </div>
   )
 }
@@ -107,10 +107,11 @@ function Reminders() {
   )
 }
 
-function BackupSettings() {
+function BackupSettings({ configured }: { configured: boolean }) {
   const [pending, setPending] = useState<{ name: string; text: string }>()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [startingNew, setStartingNew] = useState(false)
   const fileField = useRef<HTMLInputElement>(null)
 
   async function download() {
@@ -139,6 +140,7 @@ function BackupSettings() {
     if (!file) return
     setError('')
     setPending(undefined)
+    setStartingNew(false)
     setBusy(true)
     try {
       const text = await file.text()
@@ -165,6 +167,19 @@ function BackupSettings() {
     }
   }
 
+  async function startNew() {
+    setError('')
+    setBusy(true)
+    try {
+      await db.resetExam()
+      window.location.hash = 'subjects'
+      window.location.reload()
+    } catch {
+      setError('Could not start a new exam. Your current data was kept.')
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="device-card" aria-labelledby="backup-title">
       <h2 id="backup-title">Your data</h2>
@@ -173,7 +188,21 @@ function BackupSettings() {
         <button type="button" className="editor-confirm" disabled={busy} onClick={() => void download()}>Export backup</button>
         <button type="button" className="editor-confirm" disabled={busy} onClick={() => fileField.current?.click()}>Import backup</button>
         <input ref={fileField} type="file" accept=".json,application/json" hidden onChange={(event) => void selectFile(event)} />
+        {configured && (
+          <button type="button" className="text-button score-delete" disabled={busy}
+            onClick={() => { setPending(undefined); setStartingNew(true) }}>Start a new exam</button>
+        )}
       </div>
+      {startingNew && (
+        <div className="restore-warning">
+          <p><strong>Export a backup first?</strong> Starting over clears this exam, its subjects, topics, study plans, and scores.</p>
+          <div className="device-actions">
+            <button type="button" className="text-button" disabled={busy} onClick={() => setStartingNew(false)}>Cancel</button>
+            <button type="button" className="editor-confirm" disabled={busy} onClick={() => void download()}>Export backup first</button>
+            <button type="button" className="text-button score-delete" disabled={busy} onClick={() => void startNew()}>Clear exam and start over</button>
+          </div>
+        </div>
+      )}
       {pending && (
         <div className="restore-warning">
           <p>Restoring <strong>{pending.name}</strong> will replace all Pasado data on this device.</p>

@@ -140,3 +140,19 @@ it('rejects past or invalid exam dates and out-of-range settings without replaci
   await database.saveSetup({ ...exam, date: '2026-11-26' }, [], now)
   expect((await database.exams.get('main'))?.date).toBe('2026-11-26')
 })
+
+it('blocks applying a preset when scores exist and resets the exam data without clearing reminder preferences', async () => {
+  const exam = { id: 'main' as const, name: 'Exam', date: '2026-12-01', passingMark: 75, hoursPerDay: 1 }
+  const subject = { id: 'a', name: 'A', weight: 100, color: '#4B3FD6', order: 0 }
+  await database.saveSetup(exam, [subject], now)
+  await database.addTopic(subject.id, 'Topic')
+  await database.saveScore({ source: 'Mock', date: '2026-11-25', bySubject: {}, total: 80 }, undefined, now)
+  await database.settings.put({ id: 'reminders', enabled: false, time: '09:00' })
+  await expect(database.saveSetup({ ...exam, presetId: 'prc-nursing' }, [subject], now)).rejects.toThrow('Start a new exam')
+  expect(await database.exams.get('main')).toEqual(exam)
+  await database.resetExam()
+  for (const table of [database.exams, database.subjects, database.topics, database.scores, database.tasks, database.plannedDays]) {
+    expect(await table.count()).toBe(0)
+  }
+  expect(await database.settings.get('reminders')).toMatchObject({ enabled: false, time: '09:00' })
+})

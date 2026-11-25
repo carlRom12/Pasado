@@ -47,6 +47,9 @@ export class PasadoDatabase extends Dexie {
     const tables = [this.exams, this.subjects, this.topics, this.scores, this.tasks, this.plannedDays]
     return this.transaction('rw', tables, async () => {
       const previousExam = await this.exams.get('main')
+      if (exam.presetId && exam.presetId !== previousExam?.presetId && await this.scores.count()) {
+        throw new RangeError('Start a new exam before applying a preset to an exam with scores.')
+      }
       const previousSubjects = await this.subjects.toArray()
       const byId = new Map(previousSubjects.map((subject) => [subject.id, subject]))
       const changed = previousExam?.hoursPerDay !== exam.hoursPerDay
@@ -70,6 +73,13 @@ export class PasadoDatabase extends Dexie {
         await this.plannedDays.delete(today)
       }
       if (!previousExam) await this.getTodayPlan(now)
+    })
+  }
+
+  resetExam(): Promise<void> {
+    const tables = [this.exams, this.subjects, this.topics, this.scores, this.tasks, this.plannedDays]
+    return this.transaction('rw', tables, async () => {
+      await Promise.all(tables.map((table) => table.clear()))
     })
   }
 

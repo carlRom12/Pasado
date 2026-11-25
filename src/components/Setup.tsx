@@ -1,15 +1,19 @@
-﻿import { useState } from 'react'
+import { liveQuery } from 'dexie'
+import { useEffect, useState } from 'react'
 import type { DragEvent, FormEvent, KeyboardEvent } from 'react'
 import { db } from '../data/db'
 import { useLocalDay } from '../hooks/useLocalDay'
 import { daysToGo } from '../data/plan'
-import type { Exam, Subject } from '../data/types'
+import type { Exam, Preset, Subject } from '../data/types'
+import nursing from '../presets/prc-nursing.json'
 import { SubjectTopics } from './SubjectTopics'
 
 const colors = [
   '#4B3FD6', '#1FA6A0', '#E0559B', '#E89A00', '#7A7FA8',
   '#857BED', '#58C6C1', '#EE8EBE', '#F6BB55', '#A6ABD0',
 ]
+
+const presets: readonly Preset[] = [nursing]
 
 type Props = {
   exam?: Exam
@@ -30,6 +34,9 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
   const [name, setName] = useState(exam?.name ?? '')
   const [examDate, setExamDate] = useState(exam?.date ?? '')
   const [mark, setMark] = useState(String(exam?.passingMark ?? 75))
+  const [minimum, setMinimum] = useState(exam?.minPerSubject?.toString() ?? '')
+  const [presetId, setPresetId] = useState(exam?.presetId)
+  const [hasScores, setHasScores] = useState<boolean>()
   const [hours, setHours] = useState(exam?.hoursPerDay ?? 3)
   const [subjects, setSubjects] = useState(savedSubjects)
   const [editor, setEditor] = useState<Editor>()
@@ -40,6 +47,30 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [setupError, setSetupError] = useState('')
+
+  useEffect(() => {
+    const subscription = liveQuery(() => db.scores.count()).subscribe({
+      next: (count) => setHasScores(count > 0),
+      error: () => setHasScores(true),
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const preset = presets.find(({ id }) => id === presetId)
+
+  function applyPreset(next: Preset) {
+    if (subjects.length && !window.confirm('Replace the subjects in this setup with the preset subjects?')) return
+    setName(next.name)
+    setMark(String(next.passingMark))
+    setMinimum(next.minPerSubject?.toString() ?? '')
+    setPresetId(next.id)
+    setSubjects(next.subjects.map((subject, order) => ({
+      ...subject, id: crypto.randomUUID(), order, color: colors[order % colors.length],
+    })))
+    setEditor(undefined)
+    setSaved(false)
+    setSetupError('')
+  }
 
   const days = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? daysToGo(examDate, today) : undefined
   const total = subjects.reduce((sum, subject) => sum + Math.round(subject.weight * 100), 0) / 100
@@ -118,6 +149,11 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
     event.preventDefault()
     if (saving || editor) return
     const passingMark = numberInRange(mark, 0, 100)
+    const minPerSubject = numberInRange(minimum, 0, 100)
+    if (minimum !== '' && minPerSubject === undefined) {
+      setSetupError('Enter a minimum per subject from 0 to 100%, or leave it blank.')
+      return
+    }
     if (passingMark === undefined || !name.trim() || days === undefined) {
       setSetupError('Enter an exam name, a valid date, and a passing mark from 0 to 100%.')
       return
@@ -131,7 +167,8 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       return
     }
 
-    const nextExam: Exam = { ...exam, id: 'main', name: name.trim(), date: examDate, passingMark, hoursPerDay: hours }
+    const nextExam: Exam = { id: 'main', name: name.trim(), date: examDate, passingMark, hoursPerDay: hours,
+      ...(minPerSubject === undefined ? {} : { minPerSubject }), ...(presetId ? { presetId } : {}) }
     const nextSubjects = subjects.map((subject, order) => ({ ...subject, order }))
     setSaving(true)
     setSaved(false)
@@ -155,6 +192,29 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       </header>
 
       <fieldset disabled={saving} className="setup-fields">
+        {hasScores === false && !preset && (
+          <section className="device-card" aria-labelledby="preset-picker-title">
+            <h2 id="preset-picker-title">Start from an exam preset</h2>
+            {presets.map((item) => (
+              <button key={item.id} type="button" className="editor-confirm" onClick={() => applyPreset(item)}>{item.name}</button>
+            ))}
+            <p>Or start from scratch using the fields below.</p>
+          </section>
+        )}
+        {preset && (
+          <section className="device-card" aria-labelledby="preset-title">
+            <h2 id="preset-title">{preset.name}</h2>
+            <p>Source: {preset.authority} / RA 9173 §15 · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
+            {preset.weightsAssumed && (
+              <p className="preset-caution"><span aria-hidden="true">⚠</span> Weights assumed. Check your exam's syllabus.</p>
+            )}
+            <details className="preset-sources">
+              <summary>See sources</summary>
+              <ul>{preset.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
+              {preset.notes && <ul>{preset.notes.map((note) => <li key={note}>{note}</li>)}</ul>}
+            </details>
+          </section>
+        )}
         <label className="setup-field">
           <span>Exam name</span>
           <input value={name} onChange={(event) => setName(event.target.value)} placeholder="My board exam" required />
@@ -173,6 +233,16 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
             </span>
           </label>
         </div>
+
+        <label className="setup-field">
+          <span>Minimum per subject (optional)</span>
+          <span className="setup-percent">
+            <input type="number" min="0" max="100" step="any" value={minimum} aria-describedby="minimum-help"
+              onChange={(event) => setMinimum(event.target.value)} />
+            <span aria-hidden="true">%</span>
+          </span>
+          <small id="minimum-help">Some exams also require a minimum score in every subject. Leave blank if yours doesn't.</small>
+        </label>
 
         <div className="study-card">
           <div>

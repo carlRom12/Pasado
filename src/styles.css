@@ -1362,3 +1362,50 @@ nav a[aria-current="page"] {
   margin-bottom: 8px;
   color: var(--color-caution);
 }
+
+.setup-field small {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.device-card .preset-caution {
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--color-caution-tint);
+  color: var(--color-caution);
+  font-weight: 700;
+}
+
+.preset-sources {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.preset-sources summary {
+  min-height: 44px;
+  padding-block: 12px;
+  color: var(--color-indigo-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.preset-sources ul {
+  display: grid;
+  gap: 6px;
+  padding-inline-start: 20px;
+  list-style: disc;
+}
+
+.preset-sources ul + ul {
+  margin-top: 10px;
+  color: var(--color-muted);
+}
+
+.preset-sources a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-indigo-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
