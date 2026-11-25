@@ -60,13 +60,18 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
                   </p>
                 </div>
                 <div className="readiness-score">
-                  <strong><span className="sr-only">Latest overall score </span>{summary.latest === undefined ? '–' : percentage(summary.latest)}</strong>
+                  {summary.latest !== undefined && (
+                    <strong><span className="sr-only">Latest overall score </span>{percentage(summary.latest)}</strong>
+                  )}
                   <p>{studyTarget ? 'Study target ' + passingMark + '%'
                     : summary.latest === undefined ? 'Overall target ' + passingMark + '%' : 'of ' + passingMark + '% to pass'}</p>
                 </div>
               </div>
               {summary.label === 'At risk' && (
-                <p className="minimum-warning">Below the {minimum}% minimum in: {summary.belowMinimumSubjects.map(({ name }) => name).join(', ')}</p>
+                <p className="minimum-warning">
+                  {summary.average !== undefined && summary.average >= passingMark && <strong>Overall target met.{' '}</strong>}
+                  Below the {minimum}% minimum in {summary.belowMinimumSubjects.map(({ name }) => name).join(', ')}.
+                </p>
               )}
 
               {latestCoverage?.partial && (
@@ -100,9 +105,10 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
               )}
               {ranked.length ? (
                 <ol className="priority-list">
-                  {ranked.map(({ subject, gap, average, belowMinimum }, index) => {
+                  {ranked.map(({ subject, gap, average, belowMinimum, minimumGap }, index) => {
                     const reasons: string[] = []
                     if (gap === undefined) reasons.push('No scores yet')
+                    else if (belowMinimum) reasons.push('Needs ' + Math.ceil(minimumGap * 10) / 10 + ' more points to clear the minimum')
                     else if (gap > 0 && gap === biggestGap) reasons.push('Biggest gap to ' + passingMark + '%')
                     else if (gap <= 0) reasons.push(studyTarget ? 'Study target met' : 'At or above passing')
                     else if (gap <= 2) reasons.push('Nearly there')

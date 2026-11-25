@@ -5,16 +5,19 @@
   "subjects": [
     {
       "name": "Principles of Structural Analysis and Design",
+      "shortName": "Structural Analysis & Design",
       "weight": 35,
       "coverage": "Engineering mechanics, strength of materials, and structural analysis. Design of steel, reinforced and prestressed concrete members, connections and foundations. Also covers materials testing and engineering codes."
     },
     {
       "name": "Applied Mathematics, Surveying, Principles of Transportation and Highway Engineering, Construction Management and Methods",
+      "shortName": "Math, Surveying, Transport & Construction",
       "weight": 35,
       "coverage": "Calculus, differential equations, data analysis, numerical methods, physics and engineering economics. Also covers construction surveying and layout, materials, transport and highway engineering, site safety, quantity estimates and construction management."
     },
     {
       "name": "Hydraulics and Principles of Geotechnical Engineering",
+      "shortName": "Hydraulics & Geotechnical Engineering",
       "weight": 30,
       "coverage": "Fluid properties, pressure, flow, buoyancy and water supply. Geotechnical topics include soil classification, seepage, soil stresses and strength, bearing capacity, compaction, settlement, earth pressure and slope stability."
     }

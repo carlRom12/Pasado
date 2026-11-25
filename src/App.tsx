@@ -49,7 +49,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#171428' : '#4B3FD6')
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#191521' : '#FAF7EF')
   }, [dark])
 
   function toggleTheme() {

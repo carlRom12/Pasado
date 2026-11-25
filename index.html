@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#4B3FD6" />
+    <meta name="theme-color" content="#FAF7EF" />
     <script>
       let savedTheme
       try { savedTheme = localStorage.getItem('pasado-theme') } catch {}
       const dark = savedTheme === 'dark' || (savedTheme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
       document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-      if (dark) document.querySelector('meta[name="theme-color"]').content = '#171428'
+      if (dark) document.querySelector('meta[name="theme-color"]').content = '#191521'
     </script>
     <link rel="icon" href="./icons/pasado-192.png" />
     <link rel="apple-touch-icon" href="./icons/pasado-192.png" />

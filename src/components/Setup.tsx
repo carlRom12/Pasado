@@ -204,35 +204,6 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
             <button type="button" className="text-button" onClick={() => examNameField.current?.focus()}>Set up manually</button>
           </section>
         )}
-        {preset && (
-          <section className="device-card setup-preset-card" aria-labelledby="preset-title">
-            <h2 id="preset-title">{preset.name}</h2>
-            <p>Source: {preset.authority}{preset.id === nursing.id ? ' / RA 9173 §15' : ''} · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
-            {preset.weightsAssumed && (
-              <p className="preset-caution"><span aria-hidden="true">⚠</span> Weights assumed. Check your exam's syllabus.</p>
-            )}
-            <div className="preset-reference-links">
-              <details className="preset-sources nursing-coverage">
-                <summary aria-label={preset.id === nursing.id ? 'Nursing Practice I–V coverage' : 'CELE subject coverage'}>Coverage</summary>
-                <dl>
-                  {preset.subjects.map(({ name }) => (
-                    <div key={name}>
-                      <dt>{name}</dt>
-                      <dd>{presetCoverageFor(preset.id, name)}</dd>
-                    </div>
-                  ))}
-                </dl>
-                {preset.id === nursing.id && <a href="https://www.prc.gov.ph/sites/default/files/exam%20progam%20aug%202026%20nle%20%28nursing%29%20signed.pdf"
-                  target="_blank" rel="noreferrer">August 2026 PRC exam program</a>}
-              </details>
-              <details className="preset-sources">
-                <summary>See sources</summary>
-                <ul>{preset.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
-                {preset.notes && <ul>{preset.notes.map((note) => <li key={note}>{note}</li>)}</ul>}
-              </details>
-            </div>
-          </section>
-        )}
         <label className="setup-field">
           <span>Exam name</span>
           <input ref={examNameField} value={name} onChange={(event) => setName(event.target.value)} placeholder="My board exam" required />
@@ -280,6 +251,36 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
             <button type="button" aria-label="Increase study time" disabled={hours >= 12} onClick={() => { setHours(hours + 0.5); setSaved(false) }}>+</button>
           </div>
         </div>
+
+        {preset && (
+          <section className="device-card setup-preset-card" aria-labelledby="preset-title">
+            <h2 id="preset-title">{preset.name}</h2>
+            <p>Source: {preset.authority}{preset.id === nursing.id ? ' / RA 9173 §15' : ''} · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
+            {preset.weightsAssumed && (
+              <p className="preset-caution"><span aria-hidden="true">⚠</span> Weights assumed. Check your exam's syllabus.</p>
+            )}
+            <div className="preset-reference-links">
+              <details className="preset-sources nursing-coverage">
+                <summary aria-label={preset.id === nursing.id ? 'Nursing Practice I–V coverage' : 'CELE subject coverage'}>Coverage</summary>
+                <dl>
+                  {preset.subjects.map(({ name }) => (
+                    <div key={name}>
+                      <dt>{name}</dt>
+                      <dd>{presetCoverageFor(preset.id, name)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {preset.id === nursing.id && <a href="https://www.prc.gov.ph/sites/default/files/exam%20progam%20aug%202026%20nle%20%28nursing%29%20signed.pdf"
+                  target="_blank" rel="noreferrer">August 2026 PRC exam program</a>}
+              </details>
+              <details className="preset-sources">
+                <summary>See sources</summary>
+                <ul>{preset.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
+                {preset.notes && <ul>{preset.notes.map((note) => <li key={note}>{note}</li>)}</ul>}
+              </details>
+            </div>
+          </section>
+        )}
 
         <section className="subject-section" aria-labelledby="subject-title">
           <div className="subject-heading">

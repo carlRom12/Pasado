@@ -14,7 +14,7 @@ export type Preset = {
   authority: string
   passingMark?: number
   minPerSubject?: number
-  subjects: { name: string; weight: number; coverage?: string }[]
+  subjects: { name: string; weight: number; shortName?: string; coverage?: string }[]
   weightsAssumed: boolean
   sources: { label: string; url: string }[]
   lastChecked: string

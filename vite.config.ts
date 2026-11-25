@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'Pasado',
         short_name: 'Pasado',
         display: 'standalone',
-        background_color: '#F6F4FB',
-        theme_color: '#4B3FD6',
+        background_color: '#FAF7EF',
+        theme_color: '#FAF7EF',
         start_url: './',
         icons: [
           { src: './icons/pasado-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
