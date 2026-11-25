@@ -98,3 +98,33 @@ it('rejects absent, invalid, and future-dated scores', () => {
   expect(() => database.saveScore({ ...fields, bySubject: { a: NaN } }, undefined, now)).toThrow(RangeError)
   expect(() => database.saveScore({ ...fields, date: '2026-11-26', total: 75 }, undefined, now)).toThrow(RangeError)
 })
+
+it('advances and restores a review schedule with the saved task tick', async () => {
+  const exam = { id: 'main' as const, name: 'Exam', date: '2026-12-01', passingMark: 75, hoursPerDay: 1 }
+  const subject = { id: 'a', name: 'A', weight: 100, color: '#4B3FD6', order: 0 }
+  await database.saveSetup(exam, [subject], now)
+  await database.addTopic(subject.id, '  Drug interactions  ')
+  const [topic] = await database.topics.toArray()
+  expect(topic).toMatchObject({ name: 'Drug interactions', weak: false })
+  await database.setTopicWeak(topic.id, true)
+  const [previous] = await database.getTodayPlan(now)
+  expect(previous.kind).toBe('focus')
+
+  const [review] = await database.getTodayPlan(now, true)
+  expect(review).toMatchObject({ kind: 'review', topicId: topic.id })
+  expect(await database.setTaskDone(review, 123)).toBe(true)
+  expect(await database.topics.get(topic.id)).toMatchObject({ lastReviewedOn: '2026-11-25', reviewStep: 0, weak: true })
+  const [saved] = await database.getTodayPlan(now)
+  expect(await database.setTaskDone(saved, undefined)).toBe(true)
+  expect(await database.topics.get(topic.id)).toMatchObject({ lastReviewedOn: undefined, reviewStep: 0, weak: true })
+
+  await database.topics.update(topic.id, { lastReviewedOn: '2026-11-11', reviewStep: 3 })
+  expect(await database.setTaskDone(review, 456)).toBe(true)
+  expect(await database.topics.get(topic.id)).toMatchObject({ lastReviewedOn: '2026-11-25', reviewStep: 3, weak: false })
+  const [mastered] = await database.getTodayPlan(now)
+  expect(await database.setTaskDone(mastered, undefined)).toBe(true)
+  expect(await database.topics.get(topic.id)).toMatchObject({ lastReviewedOn: '2026-11-11', reviewStep: 3, weak: true })
+
+  await database.saveSetup(exam, [], now)
+  expect(await database.topics.count()).toBe(0)
+})

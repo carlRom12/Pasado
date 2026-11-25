@@ -4,6 +4,7 @@ import { db } from '../data/db'
 import { dateKey } from '../data/dates'
 import { daysToGo } from '../data/plan'
 import type { Exam, Subject } from '../data/types'
+import { SubjectTopics } from './SubjectTopics'
 
 const colors = [
   '#4B3FD6', '#1FA6A0', '#E0559B', '#E89A00', '#7A7FA8',
@@ -222,6 +223,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
                     <button type="button" className="weight-pill" aria-label={'Edit ' + subject.name + ', weight ' + subject.weight + '%'}
                       aria-expanded={editor?.id === subject.id} onClick={() => edit(subject)}>{subject.weight}%</button>
                     <button type="button" className="subject-remove" aria-label={'Remove ' + subject.name} onClick={() => remove(subject)}>×</button>
+                    {savedSubjects.some(({ id }) => id === subject.id) && <SubjectTopics subject={subject} />}
                   </li>
                 ))}
               </ul>

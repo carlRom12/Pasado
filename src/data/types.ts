@@ -40,4 +40,5 @@ export type Task = {
   minutes: number
   kind: 'focus' | 'review' | 'recap'
   doneAt?: number
+  reviewBefore?: Pick<Topic, 'weak' | 'lastReviewedOn' | 'reviewStep'>
 }

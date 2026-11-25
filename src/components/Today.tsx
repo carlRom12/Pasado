@@ -3,7 +3,7 @@ import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { db } from '../data/db'
 import { dateKey, parseDateKey } from '../data/dates'
-import { daysToGo, studyMinutes, trackingStatus } from '../data/plan'
+import { daysToGo, isReviewDue, studyMinutes, trackingStatus } from '../data/plan'
 import type { Exam, Subject, Task, Topic } from '../data/types'
 
 function useLocalDay() {
@@ -168,7 +168,8 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
                     <h3>{name}</h3>
                     <p><span className="subject-dot" style={{ backgroundColor: subject?.color }} aria-hidden="true" />{detail}</p>
                   </div>
-                  {task.kind === 'review' && task.doneAt === undefined && <span className="review-tag">Review due</span>}
+                  {task.kind === 'review' && task.doneAt === undefined && topic && isReviewDue(topic, day)
+                    && <span className="review-tag">Review due</span>}
                 </li>
               )
             })}

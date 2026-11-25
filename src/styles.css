@@ -1232,3 +1232,59 @@ nav a[aria-current="page"] {
 .priority-near {
   color: var(--color-success);
 }
+
+.subject-topics {
+  grid-column: 1 / -1;
+  padding-inline: 8px;
+}
+
+.subject-topics summary {
+  min-height: 44px;
+  padding-block: 10px;
+  color: var(--color-indigo-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.topic-list {
+  padding: 4px 0 14px;
+  font-size: 0.875rem;
+}
+
+.topic-list li {
+  padding-top: 8px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.topic-info {
+  display: grid;
+  overflow-wrap: anywhere;
+}
+
+.topic-info span,
+.topic-plan-help {
+  color: var(--color-muted);
+}
+
+.topic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.topic-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin-block: 10px;
+}
+
+.topic-add label {
+  flex: 1 1 150px;
+}
+
+.topic-add button {
+  min-height: 52px;
+}

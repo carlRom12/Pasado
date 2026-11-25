@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import { dateKey, parseDateKey } from './dates'
-import { buildDailyPlan } from './plan'
+import { buildDailyPlan, completeReview, markTopicWeak } from './plan'
 import type { Exam, Score, Subject, Task, Topic } from './types'
 
 export type ScoreFields = Pick<Score, 'source' | 'date' | 'total' | 'bySubject'>
@@ -41,6 +41,7 @@ export class PasadoDatabase extends Dexie {
 
       await this.exams.put(exam)
       for (const subject of subjects) byId.delete(subject.id)
+      if (byId.size) await this.topics.where('subjectId').anyOf([...byId.keys()]).delete()
       await this.subjects.bulkDelete([...byId.keys()])
       await this.subjects.bulkPut(subjects)
 
@@ -77,14 +78,50 @@ export class PasadoDatabase extends Dexie {
   }
 
   setTaskDone(task: Task, doneAt: number | undefined): Promise<boolean> {
-    return this.transaction('rw', this.tasks, async () => {
+    return this.transaction('rw', this.tasks, this.topics, async () => {
       const current = await this.tasks.get(task.id)
       if (!current || current.doneAt !== task.doneAt || current.minutes !== task.minutes
         || current.kind !== task.kind || current.topicId !== task.topicId) return false
-      if (doneAt === undefined) delete current.doneAt
-      else current.doneAt = doneAt
+      if (current.kind === 'review' && current.topicId) {
+        const topic = await this.topics.get(current.topicId)
+        if (topic && doneAt !== undefined) {
+          const reviewed = completeReview(topic, current.date)
+          if (reviewed !== topic) {
+            const { weak, lastReviewedOn, reviewStep } = topic
+            current.reviewBefore = { weak, lastReviewedOn, reviewStep }
+            await this.topics.put(reviewed)
+          }
+        } else if (topic && current.reviewBefore) {
+          const reviewed = completeReview({ ...topic, ...current.reviewBefore }, current.date)
+          if (topic.weak === reviewed.weak && topic.lastReviewedOn === reviewed.lastReviewedOn
+            && topic.reviewStep === reviewed.reviewStep) {
+            await this.topics.put({ ...topic, ...current.reviewBefore })
+          }
+        }
+      }
+      if (doneAt === undefined) {
+        delete current.reviewBefore
+        delete current.doneAt
+      } else current.doneAt = doneAt
       await this.tasks.put(current)
       return true
+    })
+  }
+
+  addTopic(subjectId: string, name: string): Promise<void> {
+    const trimmed = name.trim()
+    if (!trimmed) throw new RangeError('Enter a topic name.')
+    return this.transaction('rw', this.subjects, this.topics, async () => {
+      if (!await this.subjects.get(subjectId)) throw new Error('Save the subject first.')
+      await this.topics.add({ id: crypto.randomUUID(), subjectId, name: trimmed, weak: false, reviewStep: 0 })
+    })
+  }
+
+  setTopicWeak(id: string, weak: boolean): Promise<void> {
+    return this.transaction('rw', this.topics, async () => {
+      const topic = await this.topics.get(id)
+      if (!topic || topic.weak === weak) return
+      await this.topics.put(weak ? markTopicWeak(topic) : { ...topic, weak: false, lastReviewedOn: undefined, reviewStep: 0 })
     })
   }
 
