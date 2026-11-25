@@ -73,6 +73,18 @@ export class PasadoDatabase extends Dexie {
       return plan
     })
   }
+
+  setTaskDone(task: Task, doneAt: number | undefined): Promise<boolean> {
+    return this.transaction('rw', this.tasks, async () => {
+      const current = await this.tasks.get(task.id)
+      if (!current || current.doneAt !== task.doneAt || current.minutes !== task.minutes
+        || current.kind !== task.kind || current.topicId !== task.topicId) return false
+      if (doneAt === undefined) delete current.doneAt
+      else current.doneAt = doneAt
+      await this.tasks.put(current)
+      return true
+    })
+  }
 }
 
 export const db = new PasadoDatabase()

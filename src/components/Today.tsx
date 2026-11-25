@@ -1,0 +1,209 @@
+﻿import { addDays, format, startOfDay } from 'date-fns'
+import { liveQuery } from 'dexie'
+import { useEffect, useState } from 'react'
+import { db } from '../data/db'
+import { dateKey, parseDateKey } from '../data/dates'
+import { daysToGo, studyMinutes, trackingStatus } from '../data/plan'
+import type { Exam, Subject, Task, Topic } from '../data/types'
+
+function useLocalDay() {
+  const [day, setDay] = useState(() => dateKey(new Date()))
+
+  useEffect(() => {
+    let timer: number
+    function refresh() {
+      window.clearTimeout(timer)
+      const now = new Date()
+      setDay(dateKey(now))
+      const midnight = startOfDay(addDays(now, 1)).getTime()
+      timer = window.setTimeout(refresh, midnight - now.getTime())
+    }
+    refresh()
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [])
+
+  return day
+}
+
+export function Today({ exam, subjects }: { exam: Exam; subjects: Subject[] }) {
+  const day = useLocalDay()
+  return <DailyView key={day} exam={exam} subjects={subjects} day={day} />
+}
+
+type DailyData = { history: Task[]; topics: Topic[] }
+type Undo = { task: Task; subject: string }
+
+function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; day: string }) {
+  const [data, setData] = useState<DailyData>()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [undo, setUndo] = useState<Undo>()
+
+  useEffect(() => {
+    let active = true
+    const updates = liveQuery(() => db.transaction('r', db.tasks, db.topics, async () => ({
+      history: await db.tasks.where('date').belowOrEqual(day).toArray(),
+      topics: await db.topics.toArray(),
+    })))
+    let subscription: ReturnType<typeof updates.subscribe> | undefined
+    db.getTodayPlan(parseDateKey(day)).catch(() => {
+      if (active) setError('Could not load your study plan. Try rebuilding it.')
+    }).then(() => {
+      if (!active) return
+      subscription = updates.subscribe({
+        next: setData,
+        error: () => setError('Could not read your study plan.'),
+      })
+    })
+    return () => {
+      active = false
+      subscription?.unsubscribe()
+    }
+  }, [day])
+
+  const history = data?.history ?? []
+  const tasks = history.filter((task) => task.date === day)
+  const { completed } = studyMinutes(tasks)
+  const overall = studyMinutes(history)
+  const percent = Math.round(overall.fraction * 100)
+  const hasHistory = overall.completed > 0 || history.some((task) => task.date < day)
+  const status = hasHistory ? trackingStatus(history, day) : 'Just started'
+  const remaining = daysToGo(exam.date, day)
+
+  async function write(operation: () => Promise<void>) {
+    setBusy(true)
+    setError('')
+    try {
+      await operation()
+    } catch {
+      setError('Could not update your plan. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function toggle(task: Task, subject: string) {
+    void write(async () => {
+      const doneAt = task.doneAt === undefined ? Date.now() : undefined
+      if (await db.setTaskDone(task, doneAt)) {
+        setUndo(doneAt === undefined ? undefined : { task: { ...task, doneAt }, subject })
+      }
+    })
+  }
+
+  function undoCompletion() {
+    if (!undo) return
+    void write(async () => {
+      await db.setTaskDone(undo.task, undefined)
+      setUndo(undefined)
+    })
+  }
+
+  function rebuild() {
+    void write(async () => {
+      await db.getTodayPlan(parseDateKey(day), true)
+      setUndo(undefined)
+    })
+  }
+
+  return (
+    <div className="today">
+      <header className="today-heading">
+        <h1 id="screen-title">Today</h1>
+        <time dateTime={day}>{format(parseDateKey(day), 'EEE, MMM d')}</time>
+      </header>
+
+      <section className="countdown" aria-label="Exam countdown">
+        <h2>{exam.name}</h2>
+        <div className="countdown-row">
+          <div>
+            <p className="countdown-value">
+              {remaining < 0 ? 'Exam day passed' : remaining === 0 ? 'Exam day' : remaining + (remaining === 1 ? ' day' : ' days')}
+            </p>
+            <p className="countdown-date">
+              {remaining > 0 && 'to go · '}<time dateTime={exam.date}>{format(parseDateKey(exam.date), 'MMM d, yyyy')}</time>
+            </p>
+          </div>
+          {data && (
+            <p className={'track-status' + (status === 'On track' ? ' track-status--good' : status === 'Behind' ? ' track-status--behind' : '')}>
+              <span aria-hidden="true">{status === 'On track' ? '✓' : status === 'Behind' ? '!' : '○'}</span> {status}
+            </p>
+          )}
+        </div>
+        {remaining < 0 && <a className="countdown-link" href="#subjects">Set a new date</a>}
+        {data && (
+          <>
+            <progress className="countdown-progress" max={100} value={percent} aria-label="Planned study time completed" />
+            <p className="countdown-detail">{percent}% of your planned study hours done so far</p>
+          </>
+        )}
+      </section>
+
+      <section className="daily-plan" aria-labelledby="daily-plan-title">
+        <div className="daily-plan-heading">
+          <h2 id="daily-plan-title">Today's plan</h2>
+          {data && <p aria-live="polite">{duration(completed)} of {duration(exam.hoursPerDay * 60)}</p>}
+        </div>
+        {error && <p role="alert" className="setup-error">{error}</p>}
+        {data ? tasks.length ? (
+          <ul className="daily-tasks">
+            {tasks.map((task) => {
+              const subject = subjects.find(({ id }) => id === task.subjectId)
+              const name = subject?.name ?? 'Removed subject'
+              const topic = data.topics.find(({ id }) => id === task.topicId)
+              const detail = [task.minutes + ' min', topic?.name ?? (task.kind === 'recap' ? 'Quick recap' : '')].filter(Boolean).join(' · ')
+              return (
+                <li className={'daily-task' + (task.doneAt === undefined ? '' : ' daily-task--done')} key={task.id}>
+                  <button type="button" className="task-check" aria-label={'Complete ' + name}
+                    aria-pressed={task.doneAt !== undefined} disabled={busy} onClick={() => toggle(task, name)}>
+                    <span aria-hidden="true">{task.doneAt !== undefined ? '✓' : ''}</span>
+                  </button>
+                  <div className="task-copy">
+                    <h3>{name}</h3>
+                    <p><span className="subject-dot" style={{ backgroundColor: subject?.color }} aria-hidden="true" />{detail}</p>
+                  </div>
+                  {task.kind === 'review' && task.doneAt === undefined && <span className="review-tag">Review due</span>}
+                </li>
+              )
+            })}
+          </ul>
+        ) : subjects.length ? (
+          <p className="plan-empty">No study tasks for today.</p>
+        ) : (
+          <p className="plan-empty"><a href="#subjects">Add your subjects to get a plan</a></p>
+        ) : !error && <p role="status">Loading your plan…</p>}
+        {!!subjects.length && (data || error) && (
+          <button type="button" className="rebuild-plan" disabled={busy} onClick={rebuild}>Rebuild today's plan</button>
+        )}
+      </section>
+
+      <a className="log-score-link" href="#scores">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M5 20V10m7 10V4m7 16v-7" />
+        </svg>
+        <span>Took a mock exam? Log your score</span>
+      </a>
+
+      {undo && (
+        <div className="today-toast">
+          <p role="status">{undo.subject} marked done.</p>
+          <button type="button" disabled={busy} onClick={undoCompletion}>Undo</button>
+          <button type="button" aria-label="Dismiss notification" onClick={() => setUndo(undefined)}>×</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function duration(minutes: number) {
+  const hours = Math.floor(minutes / 60)
+  const remainder = minutes % 60
+  if (!hours) return remainder ? remainder + ' min' : '0 h'
+  return hours + ' h' + (remainder ? ' ' + remainder + ' min' : '')
+}
