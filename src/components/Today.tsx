@@ -3,7 +3,7 @@ import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { db } from '../data/db'
 import { useLocalDay } from '../hooks/useLocalDay'
-import { nursingCoverageFor } from '../presets/nursingCoverage'
+import { presetCoverageFor } from '../presets'
 import { parseDateKey } from '../data/dates'
 import { daysToGo, isReviewDue, rankSubjects, studyMinutes, trackingStatus } from '../data/plan'
 import type { Exam, Score, Subject, Task, Topic } from '../data/types'
@@ -152,7 +152,7 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
             {tasks.map((task, index) => {
               const subject = subjects.find(({ id }) => id === task.subjectId)
               const name = subject?.name ?? 'Removed subject'
-              const coverage = nursingCoverageFor(exam.presetId, name)
+              const coverage = presetCoverageFor(exam.presetId, name)
               const topic = data.topics.find(({ id }) => id === task.topicId)
               const detail = [task.minutes + ' min', topic?.name ?? (task.kind === 'recap' ? 'Quick recap' : '')].filter(Boolean).join(' · ')
               const reviewDue = task.kind === 'review' && task.doneAt === undefined && topic && isReviewDue(topic, day)

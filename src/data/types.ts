@@ -12,9 +12,9 @@ export type Preset = {
   id: string
   name: string
   authority: string
-  passingMark: number
+  passingMark?: number
   minPerSubject?: number
-  subjects: { name: string; weight: number }[]
+  subjects: { name: string; weight: number; coverage?: string }[]
   weightsAssumed: boolean
   sources: { label: string; url: string }[]
   lastChecked: string

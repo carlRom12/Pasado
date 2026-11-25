@@ -1,0 +1,35 @@
+{
+  "id": "prc-cele",
+  "name": "PRC Civil Engineering (CELE)",
+  "authority": "PRC",
+  "subjects": [
+    {
+      "name": "Principles of Structural Analysis and Design",
+      "weight": 35,
+      "coverage": "Engineering mechanics, strength of materials, and structural analysis. Design of steel, reinforced and prestressed concrete members, connections and foundations. Also covers materials testing and engineering codes."
+    },
+    {
+      "name": "Applied Mathematics, Surveying, Principles of Transportation and Highway Engineering, Construction Management and Methods",
+      "weight": 35,
+      "coverage": "Calculus, differential equations, data analysis, numerical methods, physics and engineering economics. Also covers construction surveying and layout, materials, transport and highway engineering, site safety, quantity estimates and construction management."
+    },
+    {
+      "name": "Hydraulics and Principles of Geotechnical Engineering",
+      "weight": 30,
+      "coverage": "Fluid properties, pressure, flow, buoyancy and water supply. Geotechnical topics include soil classification, seepage, soil stresses and strength, bearing capacity, compaction, settlement, earth pressure and slope stability."
+    }
+  ],
+  "weightsAssumed": false,
+  "sources": [
+    { "label": "PRC September 2026 CELE exam program and official weights", "url": "https://prc.gov.ph/sites/default/files/RA2026/RA%20LEX%20-%20CIVIL%20ENGINEERS%20WITH%20ADVISORIES%20CDO%209-2026.pdf" },
+    { "label": "PRC Board Resolution No. 01 (s. 2026), exam order", "url": "https://www.prc.gov.ph/sites/default/files/2026-01%20Adjustments%20To%20Be%20Administered%20Starting%20With%20The%20March%202026%20Civil%20Engineers%20Licensure%20Exam.pdf" },
+    { "label": "PRC Revised Tables of Specifications, Annex A", "url": "https://www.prc.gov.ph/sites/default/files/2022-01%20Annex%20A%20published%20TOS%20Civil%20Engineering.pdf" },
+    { "label": "PRC Board Resolution No. 05 (s. 2024), allowed calculators", "url": "https://www.prc.gov.ph/sites/default/files/Civil%20Engineer%202024-05%20published.pdf" }
+  ],
+  "lastChecked": "2026-11-25",
+  "notes": [
+    "The September 2026 PRC exam program publishes the 35%, 35%, and 30% weights. This preset follows the exam order introduced in March 2026.",
+    "The cited program and resolutions do not specify a passing average or per-subject minimum. Enter your own study target and confirm any official thresholds with PRC.",
+    "Check the PRC program for your sitting for the schedule, exam instructions and calculator rules."
+  ]
+}

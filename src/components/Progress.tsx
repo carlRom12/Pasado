@@ -5,6 +5,7 @@ import { dateKey, parseDateKey } from '../data/dates'
 import { db } from '../data/db'
 import { daysToGo, isReviewDue, overallScore, rankSubjects, readiness, scoreCoverage } from '../data/plan'
 import type { Exam, Score, Subject, Topic } from '../data/types'
+import { presetUsesStudyTarget } from '../presets'
 
 type ProgressData = { scores: Score[]; topics: Topic[] }
 type Point = { id: string; date: string; source: string; value: number }
@@ -32,6 +33,7 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
     return value === undefined || scoreCoverage(score, subjects).partial ? [] : [{ id: score.id, date: score.date, source: score.source, value }]
   })
   const passingMark = exam.passingMark
+  const studyTarget = presetUsesStudyTarget(exam.presetId)
   const minimum = exam.minPerSubject
   const summary = readiness(data?.scores ?? [], subjects, passingMark, minimum)
   const latest = data?.scores.at(-1)
@@ -52,12 +54,14 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
                 <div>
                   <h2 id="readiness-title" className="score-caption">Readiness</h2>
                   <p className={'readiness-label' + (summary.label === 'At risk' ? ' readiness-risk' : '')}>
-                    {summary.label === 'At risk' && <><span aria-hidden="true">⚠</span>{' '}</>}{summary.label}
+                    {summary.label === 'At risk' && <><span aria-hidden="true">⚠</span>{' '}</>}
+                    {studyTarget && summary.label === 'Likely ready' ? 'Study target met' : summary.label}
                   </p>
                 </div>
                 <div className="readiness-score">
                   <strong><span className="sr-only">Latest overall score </span>{summary.latest === undefined ? '–' : percentage(summary.latest)}</strong>
-                  <p>{summary.latest === undefined ? 'Overall target ' + passingMark + '%' : 'of ' + passingMark + '% to pass'}</p>
+                  <p>{studyTarget ? 'Study target ' + passingMark + '%'
+                    : summary.latest === undefined ? 'Overall target ' + passingMark + '%' : 'of ' + passingMark + '% to pass'}</p>
                 </div>
               </div>
               {summary.label === 'At risk' && (
@@ -67,7 +71,7 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
               {latestCoverage?.partial && (
                 <p className="progress-empty">Latest result is a partial mock · {latestCoverage.entered} of {latestCoverage.total} subjects. It contributes to subject averages.</p>
               )}
-              {points.length >= 2 ? <ScoreTrend points={points} passingMark={passingMark} /> : (
+              {points.length >= 2 ? <ScoreTrend points={points} passingMark={passingMark} studyTarget={studyTarget} /> : (
                 <p className="progress-empty"><a className="text-button progress-action" href="#scores">
                   {points.length ? 'Log another mock' : 'Log a full mock or overall score'}
                 </a></p>
@@ -89,7 +93,7 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
               <h2 id="priority-title">Where to spend your time</h2>
               {minimum !== undefined && ranked.length > 0 && (
                 <p className="priority-legend">
-                  <span><i className="legend-pass" aria-hidden="true" /> Pass {passingMark}%</span>
+                  <span><i className="legend-pass" aria-hidden="true" /> {studyTarget ? 'Target' : 'Pass'} {passingMark}%</span>
                   <span><i className="legend-minimum" aria-hidden="true" /> Minimum {minimum}%</span>
                 </p>
               )}
@@ -99,10 +103,10 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
                     const reasons: string[] = []
                     if (gap === undefined) reasons.push('No scores yet')
                     else if (gap > 0 && gap === biggestGap) reasons.push('Biggest gap to ' + passingMark + '%')
-                    else if (gap <= 0) reasons.push('At or above passing')
+                    else if (gap <= 0) reasons.push(studyTarget ? 'Study target met' : 'At or above passing')
                     else if (gap <= 2) reasons.push('Nearly there')
                     else if (gap <= 5) reasons.push('Close')
-                    else reasons.push(Math.round(gap) + ' points below passing')
+                    else reasons.push(Math.round(gap) + (studyTarget ? ' points below target' : ' points below passing'))
                     if (reviewSubjects.has(subject.id)) reasons.push('Review due today')
 
                     return (
@@ -117,7 +121,7 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
                           </div>
                           <div className="priority-track" role="img"
                             aria-label={(average === undefined ? 'No subject average' : 'Subject average ' + percentage(average))
-                              + ', passing mark ' + passingMark + '%' + (minimum === undefined ? '' : ', minimum ' + minimum + '%')}>
+                              + (studyTarget ? ', study target ' : ', passing mark ') + passingMark + '%' + (minimum === undefined ? '' : ', minimum ' + minimum + '%')}>
                             <span className="priority-fill" style={{ width: (average ?? 0) + '%', background: subject.color }} />
                             <span className="passing-marker" style={{ left: 'clamp(1px, ' + passingMark + '%, calc(100% - 1px))' }} />
                             {minimum !== undefined && <span className="minimum-marker"
@@ -138,7 +142,7 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
   )
 }
 
-function ScoreTrend({ points, passingMark }: { points: Point[]; passingMark: number }) {
+function ScoreTrend({ points, passingMark, studyTarget }: { points: Point[]; passingMark: number; studyTarget: boolean }) {
   const first = points[0].date
   const last = points.at(-1)!.date
   const span = daysToGo(last, first)
@@ -154,9 +158,9 @@ function ScoreTrend({ points, passingMark }: { points: Point[]; passingMark: num
 
   return (
     <div className="score-trend">
-      <svg viewBox="0 0 360 143" role="img" aria-label={'Overall score trend. Passing mark ' + passingMark + '%. ' + alternative}>
+      <svg viewBox="0 0 360 143" role="img" aria-label={'Overall score trend. ' + (studyTarget ? 'Study target ' : 'Passing mark ') + passingMark + '%. ' + alternative}>
         <line className="trend-passing" x1="6" x2="354" y1={y(passingMark)} y2={y(passingMark)} />
-        <text className="trend-pass-label" x="6" y={y(passingMark) - 7}>Pass {passingMark}%</text>
+        <text className="trend-pass-label" x="6" y={y(passingMark) - 7}>{studyTarget ? 'Target' : 'Pass'} {passingMark}%</text>
         <polyline className="trend-line" points={plotted.map(({ x, y }) => x + ',' + y).join(' ')} />
         {plotted.map((point, index) => (
           <circle key={point.id} cx={point.x} cy={point.y} r={index === plotted.length - 1 ? 6 : 4}

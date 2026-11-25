@@ -7,7 +7,7 @@ import { db } from '../data/db'
 import { isBelowMinimum, overallScore, parseScoreInput, scoreCoverage } from '../data/plan'
 import type { Exam, Score, Subject } from '../data/types'
 import { useLocalDay } from '../hooks/useLocalDay'
-import { nursingCoverageFor } from '../presets/nursingCoverage'
+import { presetCoverageFor, presetUsesStudyTarget } from '../presets'
 
 export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) {
   const today = useLocalDay()
@@ -137,7 +137,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                   const belowMinimum = isBelowMinimum(parseScoreInput(value), exam.minPerSubject)
                   const noteId = 'subject-minimum-note-' + index
                   const inputId = 'subject-score-' + index
-                  const coverage = nursingCoverageFor(exam.presetId, subject.name)
+                  const coverage = presetCoverageFor(exam.presetId, subject.name)
                   return (
                   <div className="score-subject" key={subject.id}>
                     <span className="subject-dot" aria-hidden="true" style={{ backgroundColor: subject.color }} />
@@ -175,7 +175,8 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
           <div className="score-summary">
             <div>
               <h2 className="score-caption">{showTotal ? 'Overall score' : coverage.partial ? 'Partial mock' : 'Overall (weighted)'}</h2>
-              <p>{!showTotal && coverage.partial ? coverage.entered + ' of ' + coverage.total + ' subjects' : 'Passing mark is ' + exam.passingMark + '%'}</p>
+              <p>{!showTotal && coverage.partial ? coverage.entered + ' of ' + coverage.total + ' subjects'
+                : (presetUsesStudyTarget(exam.presetId) ? 'Study target is ' : 'Passing mark is ') + exam.passingMark + '%'}</p>
             </div>
             {showTotal ? (
               <label className="score-number score-total">

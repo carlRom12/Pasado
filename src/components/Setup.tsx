@@ -6,7 +6,7 @@ import { useLocalDay } from '../hooks/useLocalDay'
 import { daysToGo } from '../data/plan'
 import type { Exam, Preset, Subject } from '../data/types'
 import nursing from '../presets/prc-nursing.json'
-import { nursingCoverageFor } from '../presets/nursingCoverage'
+import { presetCoverageFor, presets } from '../presets'
 import { SubjectTopics } from './SubjectTopics'
 
 const colors = [
@@ -14,7 +14,6 @@ const colors = [
   '#857BED', '#58C6C1', '#EE8EBE', '#F6BB55', '#A6ABD0',
 ]
 
-const presets: readonly Preset[] = [nursing]
 
 type Props = {
   exam?: Exam
@@ -64,11 +63,11 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
   function applyPreset(next: Preset) {
     if (subjects.length && !window.confirm('Replace the subjects in this setup with the preset subjects?')) return
     setName(next.name)
-    setMark(String(next.passingMark))
+    setMark(next.passingMark?.toString() ?? '')
     setMinimum(next.minPerSubject?.toString() ?? '')
     setPresetId(next.id)
-    setSubjects(next.subjects.map((subject, order) => ({
-      ...subject, id: crypto.randomUUID(), order, color: colors[order % colors.length],
+    setSubjects(next.subjects.map(({ name, weight }, order) => ({
+      name, weight, id: crypto.randomUUID(), order, color: colors[order % colors.length],
     })))
     setEditor(undefined)
     setSaved(false)
@@ -208,25 +207,23 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
         {preset && (
           <section className="device-card" aria-labelledby="preset-title">
             <h2 id="preset-title">{preset.name}</h2>
-            <p>Source: {preset.authority} / RA 9173 §15 · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
+            <p>Source: {preset.authority}{preset.id === nursing.id ? ' / RA 9173 §15' : ''} · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
             {preset.weightsAssumed && (
               <p className="preset-caution"><span aria-hidden="true">⚠</span> Weights assumed. Check your exam's syllabus.</p>
             )}
-            {preset.id === nursing.id && (
-              <details className="preset-sources nursing-coverage">
-                <summary>Nursing Practice I–V coverage</summary>
+            <details className="preset-sources nursing-coverage">
+                <summary>{preset.id === nursing.id ? 'Nursing Practice I–V coverage' : 'CELE subject coverage'}</summary>
                 <dl>
-                  {nursing.subjects.map(({ name }) => (
+                  {preset.subjects.map(({ name }) => (
                     <div key={name}>
                       <dt>{name}</dt>
-                      <dd>{nursingCoverageFor(preset.id, name)}</dd>
+                      <dd>{presetCoverageFor(preset.id, name)}</dd>
                     </div>
                   ))}
                 </dl>
-                <a href="https://www.prc.gov.ph/sites/default/files/exam%20progam%20aug%202026%20nle%20%28nursing%29%20signed.pdf"
-                  target="_blank" rel="noreferrer">August 2026 PRC exam program</a>
-              </details>
-            )}
+                {preset.id === nursing.id && <a href="https://www.prc.gov.ph/sites/default/files/exam%20progam%20aug%202026%20nle%20%28nursing%29%20signed.pdf"
+                  target="_blank" rel="noreferrer">August 2026 PRC exam program</a>}
+            </details>
             <details className="preset-sources">
               <summary>See sources</summary>
               <ul>{preset.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
@@ -245,11 +242,12 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               onChange={(event) => setExamDate(event.target.value)} required />
           </label>
           <label className="setup-field">
-            <span>Passing mark</span>
+              <span>{preset && preset.passingMark === undefined ? 'Study target' : 'Passing mark'}</span>
             <span className="setup-percent">
               <input type="number" min="0" max="100" step="any" value={mark} onChange={(event) => setMark(event.target.value)} required />
               <span aria-hidden="true">%</span>
             </span>
+              {preset && preset.passingMark === undefined && <small>Enter your own target for mock exams.</small>}
           </label>
         </div>
 
