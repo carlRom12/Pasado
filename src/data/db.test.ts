@@ -1,0 +1,59 @@
+import 'fake-indexeddb/auto'
+import { afterEach, beforeEach, expect, it } from 'vitest'
+import { PasadoDatabase } from './db'
+
+let database: PasadoDatabase
+const now = new Date(2026, 10, 25)
+
+beforeEach(() => {
+  database = new PasadoDatabase('pasado-test')
+})
+afterEach(() => database.delete())
+
+it('generates one plan per date and preserves completion across reads', async () => {
+  expect(await database.getTodayPlan(now)).toEqual([])
+  await database.exams.add({ id: 'main', name: 'Exam', date: '2026-12-01', passingMark: 75, hoursPerDay: 1 })
+  await database.subjects.bulkAdd([
+    { id: 'a', name: 'A', weight: 10, color: '#4B3FD6', order: 0 },
+    { id: 'z', name: 'Z', weight: 90, color: '#1FA6A0', order: 1 },
+  ])
+  const [plan, concurrent] = await Promise.all([database.getTodayPlan(now), database.getTodayPlan(now)])
+  expect(concurrent).toEqual(plan)
+  expect(plan.map(({ subjectId }) => subjectId)).toEqual(['z', 'a'])
+  await database.tasks.update(plan[0].id, { doneAt: 123 })
+  await database.scores.add({ id: 'mock', source: 'Practice', bySubject: { z: 80 }, date: '2026-11-25', createdAt: 1 })
+  const saved = await database.getTodayPlan(now)
+  expect(saved[0]).toMatchObject({ doneAt: 123, kind: 'focus' })
+
+  const tomorrow = new Date(2026, 10, 26)
+  const next = await database.getTodayPlan(tomorrow)
+  expect(next.every((task) => task.date === '2026-11-26' && task.doneAt === undefined)).toBe(true)
+  expect((await database.getTodayPlan(now))[0].doneAt).toBe(123)
+
+  const rebuilt = await database.getTodayPlan(now, true)
+  expect(rebuilt.map(({ subjectId, kind }) => [subjectId, kind])).toEqual([['a', 'focus'], ['z', 'recap']])
+  expect(await database.getTodayPlan(tomorrow)).toEqual(next)
+})
+
+it('invalidates only the current plan when study time or subjects change', async () => {
+  const exam = { id: 'main' as const, name: 'Exam', date: '2026-12-01', passingMark: 75, hoursPerDay: 1 }
+  const subject = { id: 'a', name: 'A', weight: 100, color: '#4B3FD6', order: 0 }
+  await database.saveSetup(exam, [subject], now)
+  const yesterday = new Date(2026, 10, 24)
+  const pastPlan = await database.getTodayPlan(yesterday)
+  const currentPlan = await database.getTodayPlan(now)
+  await database.tasks.update(currentPlan[0].id, { doneAt: 456 })
+
+  await database.saveSetup({ ...exam, name: 'Renamed exam' }, [subject], now)
+  expect((await database.getTodayPlan(now))[0].doneAt).toBe(456)
+  await database.saveSetup({ ...exam, hoursPerDay: 2 }, [subject], now)
+  expect(await database.getTodayPlan(now)).toMatchObject([{ minutes: 120 }])
+  expect((await database.getTodayPlan(now))[0].doneAt).toBeUndefined()
+  expect(await database.getTodayPlan(yesterday)).toEqual(pastPlan)
+
+  await database.saveSetup(exam, [{ ...subject, weight: 0 }], now)
+  expect(await database.getTodayPlan(now)).toEqual([])
+  await database.scores.add({ id: 'mock', source: 'Practice', bySubject: { a: 80 }, date: '2026-11-25', createdAt: 1 })
+  expect(await database.getTodayPlan(now)).toEqual([])
+  expect(await database.getTodayPlan(now, true)).toMatchObject([{ kind: 'recap', minutes: 60 }])
+})
