@@ -205,14 +205,15 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
           </section>
         )}
         {preset && (
-          <section className="device-card" aria-labelledby="preset-title">
+          <section className="device-card setup-preset-card" aria-labelledby="preset-title">
             <h2 id="preset-title">{preset.name}</h2>
             <p>Source: {preset.authority}{preset.id === nursing.id ? ' / RA 9173 §15' : ''} · last checked <time dateTime={preset.lastChecked}>{preset.lastChecked}</time></p>
             {preset.weightsAssumed && (
               <p className="preset-caution"><span aria-hidden="true">⚠</span> Weights assumed. Check your exam's syllabus.</p>
             )}
-            <details className="preset-sources nursing-coverage">
-                <summary>{preset.id === nursing.id ? 'Nursing Practice I–V coverage' : 'CELE subject coverage'}</summary>
+            <div className="preset-reference-links">
+              <details className="preset-sources nursing-coverage">
+                <summary aria-label={preset.id === nursing.id ? 'Nursing Practice I–V coverage' : 'CELE subject coverage'}>Coverage</summary>
                 <dl>
                   {preset.subjects.map(({ name }) => (
                     <div key={name}>
@@ -223,12 +224,13 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
                 </dl>
                 {preset.id === nursing.id && <a href="https://www.prc.gov.ph/sites/default/files/exam%20progam%20aug%202026%20nle%20%28nursing%29%20signed.pdf"
                   target="_blank" rel="noreferrer">August 2026 PRC exam program</a>}
-            </details>
-            <details className="preset-sources">
-              <summary>See sources</summary>
-              <ul>{preset.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
-              {preset.notes && <ul>{preset.notes.map((note) => <li key={note}>{note}</li>)}</ul>}
-            </details>
+              </details>
+              <details className="preset-sources">
+                <summary>See sources</summary>
+                <ul>{preset.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
+                {preset.notes && <ul>{preset.notes.map((note) => <li key={note}>{note}</li>)}</ul>}
+              </details>
+            </div>
           </section>
         )}
         <label className="setup-field">
@@ -242,13 +244,16 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               onChange={(event) => setExamDate(event.target.value)} required />
           </label>
           <label className="setup-field">
-              <span>{preset && preset.passingMark === undefined ? 'Study target' : 'Passing mark'}</span>
+            <span>{preset && preset.passingMark === undefined ? 'Study target' : 'Passing mark'}</span>
             <span className="setup-percent">
-              <input type="number" min="0" max="100" step="any" value={mark} onChange={(event) => setMark(event.target.value)} required />
+              <input type="number" min="0" max="100" step="any" value={mark} onChange={(event) => setMark(event.target.value)}
+                aria-describedby={preset && preset.passingMark === undefined ? 'study-target-help' : undefined} required />
               <span aria-hidden="true">%</span>
             </span>
-              {preset && preset.passingMark === undefined && <small>Enter your own target for mock exams.</small>}
           </label>
+          {preset && preset.passingMark === undefined && (
+            <p id="study-target-help" className="study-target-help">Choose a personal target for your mock exams.</p>
+          )}
         </div>
 
         <label className="setup-field">
@@ -258,7 +263,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               onChange={(event) => setMinimum(event.target.value)} />
             <span aria-hidden="true">%</span>
           </span>
-          <small id="minimum-help">Some exams also require a minimum score in every subject. Leave blank if yours doesn't.</small>
+          <small id="minimum-help">Set this if your exam requires a minimum score in every subject.</small>
         </label>
 
         <div className="study-card">
@@ -284,10 +289,13 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               <span className="sr-only">{total === 100 ? ' (complete)' : ' (check weights)'}</span>
             </p>
           </div>
-          <p className="subject-help">
-            Weight is how much a subject counts toward your overall score. Use the numbers from your exam's official syllabus or table of specifications.
-            If your exam doesn't weight subjects, give them equal weights. Pasado also uses weights to decide what to study first: it multiplies each subject's weight by how far you are below your passing mark.
-          </p>
+          <details className="preset-sources subject-weight-help">
+            <summary>How subject weights work</summary>
+            <p className="subject-help">
+              Weight is how much a subject counts toward your overall score. Use the numbers from your exam's official syllabus or table of specifications.
+              If your exam doesn't weight subjects, give them equal weights. Pasado also uses weights to decide what to study first: it multiplies each subject's weight by how far you are below your passing mark.
+            </p>
+          </details>
           {!!subjects.length && total === 0 ? (
             <p className="weight-note">Give at least one subject a weight above 0% to build a focus plan.</p>
           ) : !!subjects.length && total !== 100 && (
@@ -381,8 +389,8 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
         <button type="submit" className="setup-primary" disabled={saving || !!editor}>
           {saving ? 'Saving…' : exam ? 'Save' : 'Build my plan'}
         </button>
-        <p>Pasado plans your study. Use your reviewer app, books or review center for the content.</p>
       </footer>
+      <p className="setup-content-note">Pasado plans your study. Use your reviewer app, books or review center for the content.</p>
     </form>
   )
 }
