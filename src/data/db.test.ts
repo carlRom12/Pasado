@@ -195,3 +195,19 @@ it('refreshes a stale daily plan from before score-driven updates were enabled',
   expect((await database.getTodayPlan(now))[0].subjectId).toBe('a')
   expect(await database.plannedDays.get('2026-11-25')).toMatchObject({ scoreAware: true })
 })
+
+it('updates an existing four-task Nursing plan to cover all five sections within three hours', async () => {
+  const exam = { id: 'main' as const, name: 'Nursing', date: '2026-12-01', passingMark: 75, hoursPerDay: 3 }
+  const subjects = ['I', 'II', 'III', 'IV', 'V'].map((id, order) =>
+    ({ id, name: 'Nursing Practice ' + id, weight: 20, color: '#4B3FD6', order }))
+  await database.saveSetup(exam, subjects, now)
+  const old = await database.getTodayPlan(now)
+  expect(old).toHaveLength(4)
+  await database.setTaskDone(old[0], 123)
+  await database.exams.update('main', { presetId: 'prc-nursing' })
+  const plan = await database.getTodayPlan(now)
+  expect(plan).toHaveLength(5)
+  expect(plan.some(({ subjectId }) => subjectId === 'V')).toBe(true)
+  expect(plan.find(({ subjectId }) => subjectId === 'I')).toEqual({ ...old[0], doneAt: 123 })
+  expect(plan.reduce((sum, task) => sum + task.minutes, 0)).toBe(180)
+})

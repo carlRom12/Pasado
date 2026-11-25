@@ -116,13 +116,17 @@ function splitBlocks(total: number, priorities: readonly number[], floors: reado
   return blocks
 }
 
+export function dailyTaskLimit(exam: Exam): number {
+  return exam.presetId === 'prc-nursing' ? 5 : 4
+}
+
 export function buildDailyPlan(
   exam: Exam,
   subjects: readonly Subject[],
   scores: readonly Score[],
   topics: readonly Topic[],
   today: string,
-  maxTasks = 4,
+  maxTasks = dailyTaskLimit(exam),
 ): Task[] {
   const budget = Math.round(exam.hoursPerDay * 60 / blockMinutes)
   const limit = Math.min(budget, maxTasks)

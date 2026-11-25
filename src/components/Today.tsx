@@ -3,6 +3,7 @@ import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { db } from '../data/db'
 import { useLocalDay } from '../hooks/useLocalDay'
+import { nursingCoverageFor } from '../presets/nursingCoverage'
 import { parseDateKey } from '../data/dates'
 import { daysToGo, isReviewDue, rankSubjects, studyMinutes, trackingStatus } from '../data/plan'
 import type { Exam, Score, Subject, Task, Topic } from '../data/types'
@@ -151,13 +152,15 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
             {tasks.map((task, index) => {
               const subject = subjects.find(({ id }) => id === task.subjectId)
               const name = subject?.name ?? 'Removed subject'
+              const coverage = nursingCoverageFor(exam.presetId, name)
               const topic = data.topics.find(({ id }) => id === task.topicId)
               const detail = [task.minutes + ' min', topic?.name ?? (task.kind === 'recap' ? 'Quick recap' : '')].filter(Boolean).join(' · ')
               const reviewDue = task.kind === 'review' && task.doneAt === undefined && topic && isReviewDue(topic, day)
               const detailId = 'today-task-detail-' + index
               const reviewId = 'today-task-review-' + index
               return (
-                <li className={'daily-task' + (task.doneAt !== undefined ? ' daily-task--done' : task.id === nextTask?.id ? ' daily-task--next' : '')} key={task.id}>
+                <li className={'daily-task' + (coverage ? ' daily-task--has-coverage' : '')
+                  + (task.doneAt !== undefined ? ' daily-task--done' : task.id === nextTask?.id ? ' daily-task--next' : '')} key={task.id}>
                   <button type="button" className="task-toggle" aria-label={'Complete ' + name}
                     aria-describedby={reviewDue ? detailId + ' ' + reviewId : detailId}
                     aria-pressed={task.doneAt !== undefined} disabled={busy} onClick={() => toggle(task, name)}>
@@ -169,6 +172,12 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
                     </span>
                     {reviewDue && <span id={reviewId} className="review-tag">Review due</span>}
                   </button>
+                  {coverage && (
+                    <details className="today-coverage">
+                      <summary aria-label={'Coverage for ' + name}>Coverage</summary>
+                      <p>{coverage}</p>
+                    </details>
+                  )}
                 </li>
               )
             })}

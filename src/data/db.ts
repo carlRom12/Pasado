@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import { dateKey, parseDateKey } from './dates'
-import { buildDailyPlan, completeReview, markTopicWeak } from './plan'
+import { buildDailyPlan, completeReview, dailyTaskLimit, markTopicWeak } from './plan'
 import type { Exam, ReminderSettings, Score, Subject, Task, Topic } from './types'
 
 export type ScoreFields = Pick<Score, 'source' | 'date' | 'total' | 'bySubject'>
@@ -11,7 +11,7 @@ export class PasadoDatabase extends Dexie {
   topics!: Table<Topic, string>
   scores!: Table<Score, string>
   tasks!: Table<Task, string>
-  plannedDays!: Table<{ date: string; scoreAware?: boolean }, string>
+  plannedDays!: Table<{ date: string; scoreAware?: boolean; taskLimit?: number }, string>
   settings!: Table<ReminderSettings, ReminderSettings['id']>
 
   constructor(name = 'pasado') {
@@ -89,10 +89,10 @@ export class PasadoDatabase extends Dexie {
       const todayTasks = this.tasks.where('date').equals(today)
       const saved = await todayTasks.toArray()
       const marker = await this.plannedDays.get(today)
-      if (!rebuild && marker?.scoreAware) return saved
-
       const exam = await this.exams.get('main')
       if (!exam) return []
+      const taskLimit = dailyTaskLimit(exam)
+      if (!rebuild && marker?.scoreAware && (marker.taskLimit ?? 4) === taskLimit) return saved
       const [subjects, scores, topics] = await Promise.all([
         this.subjects.toArray(),
         this.scores.toArray(),
@@ -102,11 +102,11 @@ export class PasadoDatabase extends Dexie {
       const finishedSubjects = new Set(completed.map(({ subjectId }) => subjectId))
       const remainingMinutes = Math.max(0, exam.hoursPerDay * 60 - completed.reduce((sum, task) => sum + task.minutes, 0))
       const remainingPlan = buildDailyPlan({ ...exam, hoursPerDay: remainingMinutes / 60 },
-        subjects.filter(({ id }) => !finishedSubjects.has(id)), scores, topics, today, 4 - completed.length)
+        subjects.filter(({ id }) => !finishedSubjects.has(id)), scores, topics, today, taskLimit - completed.length)
       const plan = [...completed, ...remainingPlan]
       if (saved.length) await todayTasks.delete()
       await this.tasks.bulkAdd(plan)
-      if (subjects.length || marker) await this.plannedDays.put({ date: today, scoreAware: true })
+      if (subjects.length || marker) await this.plannedDays.put({ date: today, scoreAware: true, taskLimit })
       return plan
     })
   }

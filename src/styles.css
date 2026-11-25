@@ -1612,3 +1612,29 @@ nav a[aria-current="page"] {
     bottom: calc(61px + env(safe-area-inset-bottom));
   }
 }
+
+.daily-task--has-coverage {
+  position: relative;
+}
+
+.daily-task--has-coverage .task-toggle {
+  padding-inline-end: 87px;
+}
+
+.today-coverage summary {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 8px;
+  min-height: 44px;
+  padding: 12px 4px;
+  color: var(--color-indigo-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.today-coverage p {
+  margin: 0 14px 12px 68px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
