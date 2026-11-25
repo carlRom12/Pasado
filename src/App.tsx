@@ -3,8 +3,11 @@ import { Setup } from './components/Setup'
 import { Today } from './components/Today'
 import { Scores } from './components/Scores'
 import { Progress } from './components/Progress'
+import { DeviceSettings } from './components/DeviceSettings'
 import { db } from './data/db'
+import { checkNudge } from './data/reminders'
 import type { Exam, Subject } from './data/types'
+import { useInstall } from './hooks/useInstall'
 
 const tabs = [
   { id: 'today', label: 'Today', title: 'Today' },
@@ -28,6 +31,25 @@ export function App() {
   const requestedTab = useSyncExternalStore(subscribe, currentTab)
   const [setup, setSetup] = useState<SetupData>()
   const [loadFailed, setLoadFailed] = useState(false)
+  const install = useInstall()
+
+  useEffect(() => {
+    if (!setup?.exam || !('serviceWorker' in navigator)) return
+    const worker = navigator.serviceWorker
+    let active = true
+    const check = () => { if (active) void checkNudge().catch(() => {}) }
+    check()
+    void worker.ready.then(check).catch(() => {})
+    window.addEventListener('focus', check)
+    window.addEventListener('pageshow', check)
+    document.addEventListener('visibilitychange', check)
+    return () => {
+      active = false
+      window.removeEventListener('focus', check)
+      window.removeEventListener('pageshow', check)
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [setup?.exam])
 
   useEffect(() => {
     let cancelled = false
@@ -75,7 +97,10 @@ export function App() {
         ) : !setup ? (
           <h1 id="screen-title">Loading Pasado</h1>
         ) : activeTab.id === 'subjects' ? (
-          <Setup exam={setup.exam} subjects={setup.subjects} onSaved={handleSaved} />
+          <>
+            <Setup exam={setup.exam} subjects={setup.subjects} onSaved={handleSaved} />
+            <DeviceSettings configured={!!setup.exam} installation={install} />
+          </>
         ) : activeTab.id === 'today' && setup.exam ? (
           <Today exam={setup.exam} subjects={setup.subjects} />
         ) : activeTab.id === 'scores' && setup.exam ? (

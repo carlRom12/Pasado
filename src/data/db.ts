@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { dateKey, parseDateKey } from './dates'
 import { buildDailyPlan, completeReview, markTopicWeak } from './plan'
-import type { Exam, Score, Subject, Task, Topic } from './types'
+import type { Exam, ReminderSettings, Score, Subject, Task, Topic } from './types'
 
 export type ScoreFields = Pick<Score, 'source' | 'date' | 'total' | 'bySubject'>
 
@@ -12,6 +12,7 @@ export class PasadoDatabase extends Dexie {
   scores!: Table<Score, string>
   tasks!: Table<Task, string>
   plannedDays!: Table<{ date: string }, string>
+  settings!: Table<ReminderSettings, ReminderSettings['id']>
 
   constructor(name = 'pasado') {
     super(name)
@@ -23,6 +24,7 @@ export class PasadoDatabase extends Dexie {
       tasks: 'id, date',
       plannedDays: 'date',
     })
+    this.version(2).stores({ settings: 'id' })
   }
 
   saveSetup(exam: Exam, subjects: readonly Subject[], now = new Date()): Promise<void> {

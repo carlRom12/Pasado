@@ -42,3 +42,10 @@ export type Task = {
   doneAt?: number
   reviewBefore?: Pick<Topic, 'weak' | 'lastReviewedOn' | 'reviewStep'>
 }
+
+export type ReminderSettings = {
+  id: 'reminders'
+  enabled: boolean
+  time: string
+  lastSentOn?: string
+}

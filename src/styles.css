@@ -1288,3 +1288,77 @@ nav a[aria-current="page"] {
 .topic-add button {
   min-height: 52px;
 }
+
+.device-settings {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.device-card {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.device-card h2 {
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.device-card p {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.device-card .setup-error {
+  color: var(--color-low);
+}
+
+.device-card button:not(:disabled) {
+  cursor: pointer;
+}
+
+.device-card button:disabled {
+  opacity: 0.6;
+}
+
+.device-actions,
+.reminder-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.reminder-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.reminder-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-indigo);
+}
+
+.restore-warning {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-input);
+  background: var(--color-caution-tint);
+  overflow-wrap: anywhere;
+}
+
+.restore-warning p {
+  margin-bottom: 8px;
+  color: var(--color-caution);
+}

@@ -18,9 +18,15 @@ export default defineConfig({
         background_color: '#F6F4FB',
         theme_color: '#4B3FD6',
         start_url: './',
+        icons: [
+          { src: './icons/pasado-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: './icons/pasado-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: './icons/pasado-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,svg,png}'],
+        importScripts: ['./notification-click.js'],
       },
     }),
   ],
