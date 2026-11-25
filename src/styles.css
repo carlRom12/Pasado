@@ -639,6 +639,10 @@ nav a[aria-current="page"] {
   margin-bottom: 10px;
 }
 
+.daily-plan-heading p {
+  max-width: 100%;
+}
+
 .daily-plan-heading h2 {
   font-size: 1.375rem;
   font-weight: 800;

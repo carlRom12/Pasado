@@ -46,7 +46,7 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
 
   const history = data?.history ?? []
   const tasks = history.filter((task) => task.date === day)
-  const { completed } = studyMinutes(tasks)
+  const { completed, planned } = studyMinutes(tasks)
   const overall = studyMinutes(history)
   const percent = Math.round(overall.fraction * 100)
   const hasHistory = overall.completed > 0 || history.some((task) => task.date < day)
@@ -134,7 +134,7 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
       <section className="daily-plan" aria-labelledby="daily-plan-title">
         <div className="daily-plan-heading">
           <h2 id="daily-plan-title">Today's plan</h2>
-          {data && <p aria-live="polite">{duration(completed)} of {duration(exam.hoursPerDay * 60)}</p>}
+          {data && <p aria-live="polite">{duration(planned)} planned · {duration(completed)} done</p>}
         </div>
         {!!belowMinimum.length && (
           <p className="minimum-warning">
