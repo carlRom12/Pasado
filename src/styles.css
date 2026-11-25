@@ -654,14 +654,21 @@ nav a[aria-current="page"] {
 }
 
 .daily-task {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.task-toggle {
   display: grid;
+  width: 100%;
   grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px 12px;
   padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
+  border-radius: inherit;
+  text-align: start;
+  cursor: pointer;
 }
 
 .task-check {
@@ -676,7 +683,7 @@ nav a[aria-current="page"] {
   cursor: pointer;
 }
 
-.task-check[aria-pressed="true"] {
+.task-toggle[aria-pressed="true"] .task-check {
   border-color: var(--color-success);
   background: var(--color-success);
   color: white;
@@ -686,17 +693,18 @@ nav a[aria-current="page"] {
   overflow-wrap: anywhere;
 }
 
-.task-copy h3 {
+.task-copy strong {
+  display: block;
   font-size: 1.0625rem;
   font-weight: 800;
 }
 
-.daily-task--done h3 {
+.daily-task--done strong {
   color: var(--color-muted);
   text-decoration: line-through;
 }
 
-.task-copy p {
+.task-detail {
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -796,7 +804,7 @@ nav a[aria-current="page"] {
 }
 
 @media (max-width: 380px) {
-  .daily-task {
+  .task-toggle {
     grid-template-columns: 44px minmax(0, 1fr);
   }
 

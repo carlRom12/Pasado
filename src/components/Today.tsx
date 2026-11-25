@@ -148,24 +148,27 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
         {error && <p role="alert" className="setup-error">{error}</p>}
         {data ? tasks.length ? (
           <ul className="daily-tasks">
-            {tasks.map((task) => {
+            {tasks.map((task, index) => {
               const subject = subjects.find(({ id }) => id === task.subjectId)
               const name = subject?.name ?? 'Removed subject'
               const topic = data.topics.find(({ id }) => id === task.topicId)
               const detail = [task.minutes + ' min', topic?.name ?? (task.kind === 'recap' ? 'Quick recap' : '')].filter(Boolean).join(' · ')
+              const reviewDue = task.kind === 'review' && task.doneAt === undefined && topic && isReviewDue(topic, day)
+              const detailId = 'today-task-detail-' + index
+              const reviewId = 'today-task-review-' + index
               return (
                 <li className={'daily-task' + (task.doneAt !== undefined ? ' daily-task--done' : task.id === nextTask?.id ? ' daily-task--next' : '')} key={task.id}>
-                  <button type="button" className="task-check" aria-label={'Complete ' + name}
+                  <button type="button" className="task-toggle" aria-label={'Complete ' + name}
+                    aria-describedby={reviewDue ? detailId + ' ' + reviewId : detailId}
                     aria-pressed={task.doneAt !== undefined} disabled={busy} onClick={() => toggle(task, name)}>
-                    <span aria-hidden="true">{task.doneAt !== undefined ? '✓' : ''}</span>
+                    <span className="task-check" aria-hidden="true">{task.doneAt !== undefined ? '✓' : ''}</span>
+                    <span className="task-copy">
+                      {task.id === nextTask?.id && <span className="next-task-label">Up next</span>}
+                      <strong>{name}</strong>
+                      <span id={detailId} className="task-detail"><span className="subject-dot" style={{ backgroundColor: subject?.color }} aria-hidden="true" />{detail}</span>
+                    </span>
+                    {reviewDue && <span id={reviewId} className="review-tag">Review due</span>}
                   </button>
-                  <div className="task-copy">
-                    {task.id === nextTask?.id && <span className="next-task-label">Up next</span>}
-                    <h3>{name}</h3>
-                    <p><span className="subject-dot" style={{ backgroundColor: subject?.color }} aria-hidden="true" />{detail}</p>
-                  </div>
-                  {task.kind === 'review' && task.doneAt === undefined && topic && isReviewDue(topic, day)
-                    && <span className="review-tag">Review due</span>}
                 </li>
               )
             })}
