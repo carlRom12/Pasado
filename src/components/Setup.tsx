@@ -215,12 +215,21 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
 
       <fieldset disabled={saving} className="setup-fields">
         {hasScores === false && !preset && (
-          <section className="device-card" aria-labelledby="preset-picker-title">
+          <section className="device-card preset-picker" aria-labelledby="preset-picker-title">
             <h2 id="preset-picker-title">Start from an exam preset</h2>
-            {presets.map((item) => (
-              <button key={item.id} type="button" className="editor-confirm" onClick={() => applyPreset(item)}>{item.name}</button>
-            ))}
-            <button type="button" className="text-button" onClick={() => examNameField.current?.focus()}>Set up manually</button>
+            <div className="preset-options">
+              {presets.map((item) => (
+                <button key={item.id} type="button" className="preset-option" data-preset={item.id}
+                  onClick={() => applyPreset(item)}>
+                  <span className="preset-option-mark" aria-hidden="true">{item.id === nursing.id ? '✚' : '△'}</span>
+                  <span className="preset-option-copy">
+                    <strong>{item.name}</strong>
+                    <small>{item.subjects.length} sections · PRC coverage</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button type="button" className="text-button preset-manual" onClick={() => examNameField.current?.focus()}>Set up manually</button>
           </section>
         )}
         <label className="setup-field">

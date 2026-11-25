@@ -2160,3 +2160,113 @@ h1 {
 .subject-section > .restore-warning {
   margin-block: 4px 8px;
 }
+
+.preset-picker {
+  width: 100%;
+}
+
+.preset-picker h2 {
+  font-family: var(--display-font);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.preset-options {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.preset-option {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 13px;
+  background: var(--color-bg);
+  text-align: start;
+}
+
+.preset-option-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-tint);
+  color: var(--color-indigo-text);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.preset-option[data-preset="prc-cele"] .preset-option-mark {
+  background: var(--color-caution-tint);
+  color: var(--color-caution);
+}
+
+.preset-option-copy {
+  display: grid;
+  overflow-wrap: anywhere;
+}
+
+.preset-option-copy strong {
+  font-weight: 800;
+}
+
+.preset-option-copy small {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+@media (hover: hover) {
+  .preset-option:hover {
+    border-color: var(--color-indigo-text);
+  }
+}
+
+.session-progress {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.session-progress-steps {
+  display: flex;
+  gap: 4px;
+}
+
+.session-progress-steps span {
+  min-width: 0;
+  flex-basis: 0;
+  height: 6px;
+  border: 1px solid var(--plan-line);
+  border-radius: 9999px;
+  background: var(--color-divider);
+}
+
+.session-progress-steps [data-next="true"] {
+  background: var(--color-tint);
+  border-color: var(--color-indigo-text);
+}
+
+.session-progress-steps [data-complete="true"] {
+  border-color: var(--color-success);
+  background: var(--color-success);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .preset-option,
+  .session-progress-steps span {
+    transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+
+  .preset-option:active {
+    transform: scale(0.985);
+  }
+}

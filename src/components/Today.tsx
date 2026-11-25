@@ -57,6 +57,7 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
   const belowMinimum = ranked.filter((entry) => entry.belowMinimum).map(({ subject }) => subject)
   const nextTask = tasks.find(({ doneAt }) => doneAt === undefined)
   const planComplete = tasks.length > 0 && !nextTask
+  const finishedCount = tasks.filter(({ doneAt }) => doneAt !== undefined).length
   const startsBelowMinimum = belowMinimum.some(({ id }) => id === nextTask?.subjectId)
   const canPrioritizeToday = !!nextTask || tasks.length === 0
   const [rebuildNotice, setRebuildNotice] = useState('')
@@ -119,6 +120,17 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
           <h2 id="daily-plan-title">Today's plan</h2>
           {data && <p aria-live="polite">{duration(planned)} planned · {duration(completed)} done</p>}
         </div>
+        {!!tasks.length && (
+          <div className="session-progress">
+            <div className="session-progress-steps" aria-hidden="true">
+              {tasks.map((task) => (
+                <span key={task.id} data-complete={task.doneAt !== undefined} data-next={task.id === nextTask?.id}
+                  style={{ flexGrow: task.minutes }} />
+              ))}
+            </div>
+            <p aria-live="polite">{finishedCount} of {tasks.length} tasks complete</p>
+          </div>
+        )}
         {!!belowMinimum.length && (
           <p className="minimum-warning">
             <span aria-hidden="true">⚠</span> Below the minimum in {belowMinimum.map(({ name }) => name).join(', ')}.{' '}
