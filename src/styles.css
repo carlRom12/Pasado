@@ -1685,3 +1685,158 @@ nav a[aria-current="page"] {
     bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Color anchors for study, progress, and completion. */
+h1 {
+  letter-spacing: -0.04em;
+}
+
+.brand-mark {
+  box-shadow: 0 4px 9px #4b3fd635;
+}
+
+nav a[aria-current="page"] {
+  box-shadow: inset 0 0 0 1px #d7d0ff;
+}
+
+.countdown {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4335c8 0%, #5140dc 62%, #6446e7 100%);
+  box-shadow: 0 10px 24px #4034bd26;
+}
+
+.countdown::before,
+.countdown::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+}
+
+.countdown::before {
+  width: 255px;
+  height: 255px;
+  inset-block-start: -175px;
+  inset-inline-end: -90px;
+  border: 26px solid #ffffff14;
+  border-radius: 50%;
+}
+
+.countdown::after {
+  width: 168px;
+  height: 168px;
+  inset-block-end: -125px;
+  inset-inline-start: -25px;
+  border-radius: 50%;
+  background: #b9a7ff42;
+}
+
+.countdown-value,
+.readiness-score strong,
+.study-stepper output {
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-value {
+  letter-spacing: -0.045em;
+}
+
+.daily-task--next {
+  border-color: #998bfa;
+  background: #f5f1ff;
+  box-shadow: inset 3px 0 var(--color-indigo);
+}
+
+.daily-task--done {
+  border-color: #d1e9df;
+  background: #f6fcf9;
+}
+
+.plan-complete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #b9e1d0;
+  border-radius: 16px;
+  background: var(--color-success-tint);
+  color: #12634d;
+}
+
+.plan-complete-mark {
+  display: grid;
+  flex: 0 0 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: white;
+  font-weight: 800;
+}
+
+.log-score-link {
+  border: 1px solid #e0d8ff;
+  background: linear-gradient(120deg, #eae3ff, #f3efff 70%);
+}
+
+.setup-primary {
+  background: linear-gradient(115deg, #4538cb, #5944dd);
+  box-shadow: 0 4px 12px #4b3fd626;
+}
+
+.setup-preset-card {
+  border-color: #dfd6fc;
+  background: linear-gradient(145deg, #f0eaff, #fff 78%);
+}
+
+.score-summary {
+  border: 1px solid #e3dbfa;
+  background: linear-gradient(145deg, #eee8ff, #f7f3ff);
+}
+
+.readiness-card {
+  border-top: 3px solid #c4b6ff;
+}
+
+.readiness-card--ready {
+  border-top-color: var(--color-success);
+}
+
+.readiness-card--risk {
+  border-top-color: var(--color-gold);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .setup-primary,
+  .task-toggle,
+  .log-score-link {
+    transition: transform 140ms ease-out, background-color 140ms ease-out, box-shadow 140ms ease-out;
+  }
+
+  .setup-primary:not(:disabled):active,
+  .task-toggle:not(:disabled):active,
+  .log-score-link:active {
+    transform: scale(0.985);
+  }
+
+  .task-toggle[aria-pressed="true"] .task-check,
+  .plan-complete-mark {
+    animation: completion-pop 260ms ease-out both;
+  }
+}
+
+@keyframes completion-pop {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (forced-colors: active) {
+  .daily-task--next,
+  .plan-complete {
+    outline: 1px solid CanvasText;
+  }
+}

@@ -49,7 +49,8 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
       {failed ? <p role="alert" className="setup-error">Could not load your progress. Reopen this tab to try again.</p>
         : !data ? <p role="status">Loading your progress…</p> : (
           <>
-            <section className="readiness-card" aria-labelledby="readiness-title">
+            <section className={'readiness-card' + (summary.label === 'Likely ready' ? ' readiness-card--ready'
+              : summary.label === 'At risk' ? ' readiness-card--risk' : '')} aria-labelledby="readiness-title">
               <div className="readiness-heading">
                 <div>
                   <h2 id="readiness-title" className="score-caption">Readiness</h2>

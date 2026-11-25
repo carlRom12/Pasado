@@ -57,6 +57,7 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
     rankSubjects(subjects, data?.scores ?? [], exam.passingMark, exam.minPerSubject)
       .filter((entry) => entry.belowMinimum).map(({ subject }) => subject)
   const nextTask = tasks.find(({ doneAt }) => doneAt === undefined)
+  const planComplete = tasks.length > 0 && !nextTask
   const startsBelowMinimum = belowMinimum.some(({ id }) => id === nextTask?.subjectId)
   const canPrioritizeToday = !!nextTask || tasks.length === 0
   const [rebuildNotice, setRebuildNotice] = useState('')
@@ -146,6 +147,12 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
           </p>
         )}
         <p className="rebuild-notice" role="status">{rebuildNotice}</p>
+        {planComplete && (
+          <p className="plan-complete" role="status">
+            <span className="plan-complete-mark" aria-hidden="true">✓</span>
+            <span><strong>Today’s plan complete!</strong> {duration(completed)} studied.</span>
+          </p>
+        )}
         {error && <p role="alert" className="setup-error">{error}</p>}
         {data ? tasks.length ? (
           <ul className="daily-tasks">
