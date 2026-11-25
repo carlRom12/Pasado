@@ -24,7 +24,8 @@ export class PasadoDatabase extends Dexie {
   }
 
   saveSetup(exam: Exam, subjects: readonly Subject[], now = new Date()): Promise<void> {
-    return this.transaction('rw', [this.exams, this.subjects, this.tasks, this.plannedDays], async () => {
+    const tables = [this.exams, this.subjects, this.topics, this.scores, this.tasks, this.plannedDays]
+    return this.transaction('rw', tables, async () => {
       const previousExam = await this.exams.get('main')
       const previousSubjects = await this.subjects.toArray()
       const byId = new Map(previousSubjects.map((subject) => [subject.id, subject]))
@@ -46,6 +47,7 @@ export class PasadoDatabase extends Dexie {
         await this.tasks.where('date').equals(today).delete()
         await this.plannedDays.delete(today)
       }
+      if (!previousExam) await this.getTodayPlan(now)
     })
   }
 
