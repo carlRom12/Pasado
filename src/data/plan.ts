@@ -5,6 +5,20 @@ import type { Exam, Score, Subject, Task, Topic } from './types'
 const reviewIntervals = [1, 3, 7, 14]
 const blockMinutes = 15
 
+export function parseScoreInput(input: string): number | undefined {
+  const parts = input.trim().split('/')
+  if (parts.length > 2) return undefined
+  const values = parts.map((part) => {
+    const value = (parts.length === 1 ? part.replace(/%$/, '') : part).trim()
+    return /^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value) ? Number(value) : NaN
+  })
+  const [earned, possible = 100] = values
+  if (!Number.isFinite(earned) || !Number.isFinite(possible) || possible <= 0 || earned > possible) return undefined
+  if (parts.length === 1) return earned
+  const scaled = earned * 100
+  return Number.isFinite(scaled) ? scaled / possible : (earned / possible) * 100
+}
+
 export function daysToGo(examDate: string, today: string): number {
   return differenceInCalendarDays(parseDateKey(examDate), parseDateKey(today))
 }

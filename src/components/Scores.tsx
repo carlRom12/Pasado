@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { parseDateKey } from '../data/dates'
 import { db } from '../data/db'
-import { isBelowMinimum, overallScore } from '../data/plan'
+import { isBelowMinimum, overallScore, parseScoreInput } from '../data/plan'
 import type { Exam, Score, Subject } from '../data/types'
 import { useLocalDay } from '../hooks/useLocalDay'
 
@@ -33,16 +33,20 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
   }, [])
 
   const suggestions = [...new Map((scores ?? []).map(({ source }) => [source.toLowerCase(), source])).values()]
-  const entered = Object.entries(subjectInputs).filter(([, value]) => value !== '')
-  const bySubject = Object.fromEntries(entered.map(([id, value]) => [id, Number(value)]))
+  const entered = Object.entries(subjectInputs).filter(([, value]) => value.trim() !== '')
+  const bySubject = Object.fromEntries(entered.flatMap(([id, value]) => {
+    const parsed = parseScoreInput(value)
+    return parsed === undefined ? [] : [[id, parsed] as const]
+  }))
   const archived = Object.fromEntries(Object.entries(editing?.bySubject ?? {})
     .filter(([id]) => !subjects.some((subject) => subject.id === id)))
   const showTotal = entered.length === 0
-  const useArchived = !(showTotal && total !== '')
+  const useArchived = !(showTotal && total.trim() !== '')
   const subjectScores = useArchived ? { ...archived, ...bySubject } : bySubject
-  const enteredTotal = showTotal && total !== '' ? Number(total) : undefined
-  const preview = Object.values(subjectScores).some((value) => value < 0 || value > 100)
-    || (enteredTotal !== undefined && (enteredTotal < 0 || enteredTotal > 100))
+  const enteredTotal = showTotal ? parseScoreInput(total) : undefined
+  const invalidScore = entered.length !== Object.keys(bySubject).length
+    || (showTotal && total.trim() !== '' && enteredTotal === undefined)
+  const preview = invalidScore
     ? undefined : overallScore({ id: '', source, date, createdAt: 0, bySubject: subjectScores, total: enteredTotal }, subjects)
 
   function startEditing(score?: Score) {
@@ -65,6 +69,10 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
     if (!source.trim()) {
       setError('Enter where the score came from.')
       sourceField.current?.focus()
+      return
+    }
+    if (invalidScore) {
+      setError('Enter a percentage from 0 to 100 or a score like 42/70. Points earned must be between zero and the total possible.')
       return
     }
     if (showTotal && enteredTotal === undefined && !Object.keys(archived).length) {
@@ -116,6 +124,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
               <input type="date" value={date} min="0001-01-01" max={today} onChange={(event) => setDate(event.target.value)} required />
             </label>
           </div>
+          <p id="score-format" className="score-help">Enter a percentage like 60, or points earned out of points possible like 42/70.</p>
 
           {!!subjects.length && (
             <section className="score-subjects" aria-labelledby="subject-score-title">
@@ -123,8 +132,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
               <div className="score-card score-subject-list">
                 {subjects.map((subject, index) => {
                   const value = subjectInputs[subject.id] ?? ''
-                  const belowMinimum = value !== '' && Number(value) >= 0
-                    && isBelowMinimum(Number(value), exam.minPerSubject)
+                  const belowMinimum = isBelowMinimum(parseScoreInput(value), exam.minPerSubject)
                   const noteId = 'subject-minimum-note-' + index
                   return (
                   <label className="score-subject" key={subject.id}>
@@ -134,11 +142,10 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                       <small>Weight {subject.weight}%</small>
                     </span>
                     <span className="score-number">
-                      <input aria-label={subject.name + ' score (%)'} type="number" min="0" max="100" step="any" inputMode="decimal"
-                        value={value} aria-describedby={belowMinimum ? noteId : undefined}
+                      <input aria-label={subject.name + ' score'} type="text"
+                        value={value} aria-describedby={belowMinimum ? 'score-format ' + noteId : 'score-format'}
                         onChange={(event) => setSubjectInputs({ ...subjectInputs, [subject.id]: event.target.value })}
-                        placeholder="–" />
-                      <span aria-hidden="true">%</span>
+                        placeholder="42/70" />
                     </span>
                     <span id={noteId} className="score-minimum-note" aria-live="polite">
                       {belowMinimum && <><span aria-hidden="true">⚠</span> Below the {exam.minPerSubject}% minimum</>}
@@ -157,9 +164,8 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
             </div>
             {showTotal ? (
               <label className="score-number score-total">
-                <input aria-label="Overall score (%)" type="number" min="0" max="100" step="any" inputMode="decimal" placeholder="–"
+                <input aria-label="Overall score" aria-describedby="score-format" type="text" placeholder="42/70"
                   value={total} onChange={(event) => setTotal(event.target.value)} />
-                <span aria-hidden="true">%</span>
               </label>
             ) : (
               <output aria-label="Weighted overall score" aria-live="polite">{preview === undefined ? '–' : Math.round(preview) + '%'}</output>

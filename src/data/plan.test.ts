@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildDailyPlan, completeReview, daysToGo, isReviewDue, markTopicWeak,
-  overallScore, rankSubjects, readiness, reviewDueOn, studyMinutes, subjectAverage, trackingStatus,
+  overallScore, parseScoreInput, rankSubjects, readiness, reviewDueOn, studyMinutes, subjectAverage, trackingStatus,
 } from './plan'
 import type { Exam, Score, Subject, Topic } from './types'
 
@@ -180,4 +180,17 @@ it('drops lower-priority tasks when their slots would crowd out the 30-minute fl
   expect(plan[0]).toMatchObject({ subjectId: 'fundamentals', minutes: 30 })
   expect(plan).toHaveLength(3)
   expect(studyMinutes(plan).planned).toBe(60)
+})
+
+it('accepts percentages and points earned out of points possible', () => {
+  expect(parseScoreInput('60/100')).toBe(60)
+  expect(parseScoreInput('42 / 70')).toBe(60)
+  expect(parseScoreInput('29/50')).toBe(58)
+  expect(parseScoreInput('75/60')).toBeUndefined()
+  expect(parseScoreInput('0/20')).toBe(0)
+  expect(parseScoreInput('82.5%')).toBe(82.5)
+  expect(parseScoreInput('60')).toBe(60)
+  for (const invalid of ['', '1/0', '105', '-5/10', '2/', '3//4', '60abc']) {
+    expect(parseScoreInput(invalid)).toBeUndefined()
+  }
 })
