@@ -4,6 +4,21 @@ export type Exam = {
   date: string
   passingMark: number
   hoursPerDay: number
+  minPerSubject?: number
+  presetId?: string
+}
+
+export type Preset = {
+  id: string
+  name: string
+  authority: string
+  passingMark: number
+  minPerSubject?: number
+  subjects: { name: string; weight: number }[]
+  weightsAssumed: boolean
+  sources: { label: string; url: string }[]
+  lastChecked: string
+  notes?: string[]
 }
 
 export type Subject = {

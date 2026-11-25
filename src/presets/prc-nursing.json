@@ -1,0 +1,26 @@
+{
+  "id": "prc-nursing",
+  "name": "PRC Nursing (PNLE)",
+  "authority": "PRC",
+  "passingMark": 75,
+  "minPerSubject": 60,
+  "subjects": [
+    { "name": "Nursing Practice I", "weight": 20 },
+    { "name": "Nursing Practice II", "weight": 20 },
+    { "name": "Nursing Practice III", "weight": 20 },
+    { "name": "Nursing Practice IV", "weight": 20 },
+    { "name": "Nursing Practice V", "weight": 20 }
+  ],
+  "weightsAssumed": true,
+  "sources": [
+    { "label": "RA 9173 (Philippine Nursing Act of 2002), Section 15", "url": "https://prc.gov.ph/uploaded/documents/NURSING%20LAW.PDF" },
+    { "label": "PRC Enhanced Table of Specifications (Nursing)", "url": "https://www.prc.gov.ph/sites/default/files/2025-16%20annex%20A%20nurse.pdf" },
+    { "label": "PRC Competency Based Test Framework (Nursing)", "url": "https://prc.gov.ph/sites/default/files//Board%20of%20Nursing%20-%20Competency%20Based%20Test%20Framework%20and%20Table%20of%20Specifications_0.pdf" }
+  ],
+  "lastChecked": "2026-11-25",
+  "notes": [
+    "PRC lists five Nursing Practice subjects with 100 items each. It does not state separate subject weights, so equal weights are assumed.",
+    "PRC's two test-framework documents describe the content of each Nursing Practice differently and do not show an effective date. Check the latest PRC resolution for which topics each one covers.",
+    "RA 9173 as printed on the PRC site shows the passing average as '785%'; this is read as 75%."
+  ]
+}

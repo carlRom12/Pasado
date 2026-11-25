@@ -83,10 +83,14 @@ export function parseBackup(input: string): Backup {
     let exam: Exam | null = null
     if (examRow) {
       if (examRow.id !== 'main') invalid()
+      const minPerSubject = optional(examRow.minPerSubject, (value) => number(value, 0, 100))
+      const presetId = optional(examRow.presetId, text)
       exam = {
         id: 'main', name: text(examRow.name), date: date(examRow.date),
         passingMark: number(examRow.passingMark, 0, 100),
         hoursPerDay: integer(number(examRow.hoursPerDay, 1, 12) * 2, 2, 24) / 2,
+        ...(minPerSubject === undefined ? {} : { minPerSubject }),
+        ...(presetId === undefined ? {} : { presetId }),
       }
     }
 

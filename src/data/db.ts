@@ -25,6 +25,8 @@ export class PasadoDatabase extends Dexie {
       plannedDays: 'date',
     })
     this.version(2).stores({ settings: 'id' })
+    // Existing exam records stay valid without either optional field.
+    this.version(3).stores({ exams: 'id, presetId' })
   }
 
   saveSetup(exam: Exam, subjects: readonly Subject[], now = new Date()): Promise<void> {
@@ -34,6 +36,10 @@ export class PasadoDatabase extends Dexie {
     if (!name) throw new RangeError('Enter an exam name.')
     if (!Number.isFinite(exam.passingMark) || exam.passingMark < 0 || exam.passingMark > 100) {
       throw new RangeError('Enter a passing mark from 0 to 100%.')
+    }
+    if (exam.minPerSubject !== undefined && (!Number.isFinite(exam.minPerSubject)
+      || exam.minPerSubject < 0 || exam.minPerSubject > 100)) {
+      throw new RangeError('Enter a minimum per subject from 0 to 100%.')
     }
     if (!Number.isInteger(exam.hoursPerDay * 2) || exam.hoursPerDay < 1 || exam.hoursPerDay > 12) {
       throw new RangeError('Choose 1 to 12 study hours in half-hour steps.')

@@ -47,3 +47,21 @@ it('keeps local data intact after an invalid import and accepts an empty backup'
   expect(await exportBackup(database)).toBe(raw)
   expect(parseBackup(await exportBackup(restored)).exam).toBeNull()
 })
+
+it('imports a pre-v2 JSON backup without either new exam field', async () => {
+  const legacyBackup = JSON.stringify({
+    app: 'Pasado', version: 1, exam, subjects: [subject], topics: [], scores: [], tasks: [], plannedDays: [],
+    reminders: { id: 'reminders', enabled: true, time: '08:00' },
+  })
+  await restoreBackup(restored, legacyBackup)
+  expect(await restored.exams.get('main')).toStrictEqual(exam)
+  expect(await restored.subjects.toArray()).toEqual([subject])
+})
+
+it('preserves an explicit zero minimum and a preset through backup and restore', async () => {
+  const configured = { ...exam, minPerSubject: 0, presetId: 'prc-nursing' }
+  await database.saveSetup(configured, [subject], now)
+  await restoreBackup(restored, await exportBackup(database))
+  expect(await restored.exams.get('main')).toEqual(configured)
+  expect(() => database.saveSetup({ ...configured, minPerSubject: 101 }, [subject], now)).toThrow(RangeError)
+})
