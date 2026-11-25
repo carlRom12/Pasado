@@ -2147,3 +2147,16 @@ h1 {
     forced-color-adjust: none;
   }
 }
+
+.preset-manual,
+.remove-all-subjects {
+  padding-inline: 0;
+}
+
+.setup-preset-card .restore-warning {
+  margin-top: 4px;
+}
+
+.subject-section > .restore-warning {
+  margin-block: 4px 8px;
+}

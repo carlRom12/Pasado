@@ -47,6 +47,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [setupError, setSetupError] = useState('')
+  const [clearAction, setClearAction] = useState<'preset' | 'subjects'>()
   const examNameField = useRef<HTMLInputElement>(null)
   const examDateField = useRef<HTMLInputElement>(null)
 
@@ -70,9 +71,27 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
       name, weight, id: crypto.randomUUID(), order, color: colors[order % colors.length],
     })))
     setEditor(undefined)
+    setClearAction(undefined)
     setSaved(false)
     setSetupError('')
     examDateField.current?.focus()
+  }
+
+  function clearSetup() {
+    setSubjects([])
+    setEditor(undefined)
+    setEditorError('')
+    setSetupError('')
+    setSaved(false)
+    if (clearAction === 'preset') {
+      setPresetId(undefined)
+      setName('')
+      setMark('')
+      setMinimum('')
+      examNameField.current?.focus()
+    }
+    setMessage('Subjects cleared.')
+    setClearAction(undefined)
   }
 
   const days = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? daysToGo(examDate, today) : undefined
@@ -279,6 +298,18 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
                 {preset.notes && <ul>{preset.notes.map((note) => <li key={note}>{note}</li>)}</ul>}
               </details>
             </div>
+            <button type="button" className="text-button preset-manual" onClick={() => setClearAction('preset')}>
+              Switch to manual setup
+            </button>
+            {clearAction === 'preset' && (
+              <div className="restore-warning">
+                <p>Clear the preset name, score targets, and subjects? Your exam date and study time will stay.</p>
+                <div className="device-actions">
+                  <button type="button" className="text-button" onClick={() => setClearAction(undefined)}>Cancel</button>
+                  <button type="button" className="text-button score-delete" onClick={clearSetup}>Clear preset</button>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -297,6 +328,20 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               If your exam doesn't weight subjects, give them equal weights. Pasado also uses weights to decide what to study first: it multiplies each subject's weight by how far you are below your passing mark.
             </p>
           </details>
+          {!!subjects.length && (
+            <button type="button" className="text-button score-delete remove-all-subjects" onClick={() => setClearAction('subjects')}>
+              Remove all subjects
+            </button>
+          )}
+          {clearAction === 'subjects' && (
+            <div className="restore-warning">
+              <p>Remove all subjects from this setup? Saving removes their study topics too.</p>
+              <div className="device-actions">
+                <button type="button" className="text-button" onClick={() => setClearAction(undefined)}>Cancel</button>
+                <button type="button" className="text-button score-delete" onClick={clearSetup}>Remove subjects</button>
+              </div>
+            </div>
+          )}
           {!!subjects.length && total === 0 ? (
             <p className="weight-note">Give at least one subject a weight above 0% to build a focus plan.</p>
           ) : !!subjects.length && total !== 100 && (
