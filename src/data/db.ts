@@ -11,7 +11,7 @@ export class PasadoDatabase extends Dexie {
   topics!: Table<Topic, string>
   scores!: Table<Score, string>
   tasks!: Table<Task, string>
-  plannedDays!: Table<{ date: string }, string>
+  plannedDays!: Table<{ date: string; scoreAware?: boolean }, string>
   settings!: Table<ReminderSettings, ReminderSettings['id']>
 
   constructor(name = 'pasado') {
@@ -85,11 +85,11 @@ export class PasadoDatabase extends Dexie {
 
   getTodayPlan(now = new Date(), rebuild = false): Promise<Task[]> {
     const today = dateKey(now)
-    const tables = [this.exams, this.subjects, this.topics, this.scores, this.tasks, this.plannedDays]
-    return this.transaction('rw', tables, async () => {
+    return this.transaction('rw', this.planTables, async () => {
       const todayTasks = this.tasks.where('date').equals(today)
       const saved = await todayTasks.toArray()
-      if (!rebuild && (saved.length || await this.plannedDays.get(today))) return saved
+      const marker = await this.plannedDays.get(today)
+      if (!rebuild && marker?.scoreAware) return saved
 
       const exam = await this.exams.get('main')
       if (!exam) return []
@@ -98,17 +98,21 @@ export class PasadoDatabase extends Dexie {
         this.scores.toArray(),
         this.topics.toArray(),
       ])
-      const completed = rebuild ? saved.filter((task) => task.doneAt !== undefined) : []
+      const completed = saved.filter((task) => task.doneAt !== undefined)
       const finishedSubjects = new Set(completed.map(({ subjectId }) => subjectId))
       const remainingMinutes = Math.max(0, exam.hoursPerDay * 60 - completed.reduce((sum, task) => sum + task.minutes, 0))
       const remainingPlan = buildDailyPlan({ ...exam, hoursPerDay: remainingMinutes / 60 },
         subjects.filter(({ id }) => !finishedSubjects.has(id)), scores, topics, today, 4 - completed.length)
       const plan = [...completed, ...remainingPlan]
-      if (rebuild) await todayTasks.delete()
+      if (saved.length) await todayTasks.delete()
       await this.tasks.bulkAdd(plan)
-      if (subjects.length) await this.plannedDays.put({ date: today })
+      if (subjects.length || marker) await this.plannedDays.put({ date: today, scoreAware: true })
       return plan
     })
+  }
+
+  private get planTables() {
+    return [this.exams, this.subjects, this.topics, this.scores, this.tasks, this.plannedDays]
   }
 
   setTaskDone(task: Task, doneAt: number | undefined): Promise<boolean> {
@@ -172,14 +176,26 @@ export class PasadoDatabase extends Dexie {
     const score = { source, date: fields.date, bySubject: fields.bySubject,
       ...(subjectValues.length ? {} : { total: fields.total }) }
 
-    return this.transaction('rw', this.scores, async () => {
+    return this.transaction('rw', this.planTables, async () => {
+      let affectsPriorities = subjectValues.length > 0
       if (id !== undefined) {
         const previous = await this.scores.get(id)
         if (!previous) throw new Error('This score was already removed.')
+        affectsPriorities ||= Object.keys(previous.bySubject).length > 0
         await this.scores.put({ ...score, id, createdAt: previous.createdAt })
       } else {
         await this.scores.add({ ...score, id: crypto.randomUUID(), createdAt: now.getTime() })
       }
+      if (affectsPriorities) await this.getTodayPlan(now, true)
+    })
+  }
+
+  deleteScore(id: string, now = new Date()): Promise<void> {
+    return this.transaction('rw', this.planTables, async () => {
+      const score = await this.scores.get(id)
+      if (!score) return
+      await this.scores.delete(id)
+      if (Object.keys(score.bySubject).length) await this.getTodayPlan(now, true)
     })
   }
 }

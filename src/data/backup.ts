@@ -11,7 +11,7 @@ type Backup = {
   topics: Topic[]
   scores: Score[]
   tasks: Task[]
-  plannedDays: { date: string }[]
+  plannedDays: { date: string; scoreAware?: boolean }[]
   reminders: ReminderSettings
 }
 
@@ -129,7 +129,9 @@ export function parseBackup(input: string): Backup {
       }
     }, (row) => row.id)
 
-    const plannedDays = rows(file.plannedDays, (row) => ({ date: date(row.date) }), (row) => row.date)
+    const plannedDays = rows(file.plannedDays, (row) => ({
+      date: date(row.date), ...(row.scoreAware === undefined ? {} : { scoreAware: bool(row.scoreAware) }),
+    }), (row) => row.date)
     const reminderRow = object(file.reminders)
     const time = text(reminderRow.time)
     if (reminderRow.id !== 'reminders' || !isReminderTime(time)) invalid()

@@ -156,3 +156,42 @@ it('blocks applying a preset when scores exist and resets the exam data without 
   }
   expect(await database.settings.get('reminders')).toMatchObject({ enabled: false, time: '09:00' })
 })
+
+it('refreshes unfinished tasks after saving, editing, and deleting subject scores', async () => {
+  const exam = { id: 'main' as const, name: 'Exam', date: '2026-12-01', passingMark: 75, minPerSubject: 60, hoursPerDay: 3 }
+  const subjects = ['a', 'b', 'c'].map((id, order) => ({ id, name: id, weight: 30, color: '#4B3FD6', order }))
+  await database.saveSetup(exam, subjects, now)
+  const [first] = await database.getTodayPlan(now)
+  expect(await database.setTaskDone(first, 123)).toBe(true)
+  const fields = { source: 'Mock', date: '2026-11-25', bySubject: { b: 80, c: 55 } }
+  await database.saveScore(fields, undefined, now)
+
+  async function expectPlan(order: string[]) {
+    const plan = await database.getTodayPlan(now)
+    expect(plan.filter(({ doneAt }) => doneAt === undefined).map(({ subjectId }) => subjectId)).toEqual(order)
+    expect(plan.find(({ doneAt }) => doneAt !== undefined)).toEqual({ ...first, doneAt: 123 })
+    expect(plan.reduce((sum, task) => sum + task.minutes, 0)).toBe(180)
+  }
+  await expectPlan(['c', 'b'])
+
+  const [score] = await database.scores.toArray()
+  await database.saveScore({ ...fields, bySubject: { b: 50, c: 80 } }, score.id, now)
+  await expectPlan(['b', 'c'])
+  await database.saveScore(fields, score.id, now)
+  await expectPlan(['c', 'b'])
+  await database.deleteScore(score.id, now)
+  await expectPlan(['b', 'c'])
+  expect(await database.scores.count()).toBe(0)
+})
+
+it('refreshes a stale daily plan from before score-driven updates were enabled', async () => {
+  const exam = { id: 'main' as const, name: 'Exam', date: '2026-12-01', passingMark: 75, hoursPerDay: 1 }
+  const subjects = ['a', 'b'].map((id, order) => ({ id, name: id, weight: 50, color: '#4B3FD6', order }))
+  await database.saveSetup(exam, subjects, now)
+  await database.saveScore({ source: 'Mock', date: '2026-11-25', bySubject: { a: 90, b: 50 } }, undefined, now)
+  expect((await database.getTodayPlan(now))[0].subjectId).toBe('b')
+  await database.scores.clear()
+  await database.plannedDays.put({ date: '2026-11-25' })
+  expect((await database.getTodayPlan(now))[0].subjectId).toBe('a')
+  expect(await database.plannedDays.get('2026-11-25')).toMatchObject({ scoreAware: true })
+})

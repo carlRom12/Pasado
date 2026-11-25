@@ -98,7 +98,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
     setHistoryError('')
     setNotice('')
     try {
-      await db.scores.delete(score.id)
+      await db.deleteScore(score.id)
       if (editing?.id === score.id) startEditing()
       setDeleting(undefined)
       setNotice('Score deleted.')
