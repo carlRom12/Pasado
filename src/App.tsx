@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Setup } from './components/Setup'
 import { Today } from './components/Today'
 import { Scores } from './components/Scores'
@@ -32,6 +32,32 @@ export function App() {
   const [setup, setSetup] = useState<SetupData>()
   const [loadFailed, setLoadFailed] = useState(false)
   const install = useInstall()
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark')
+  const themeChosen = useRef(false)
+  const settingsDialog = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    function followSystem(event: MediaQueryListEvent) {
+      if (themeChosen.current) return
+      try { if (localStorage.getItem('pasado-theme')) return } catch {}
+      setDark(event.matches)
+    }
+    media.addEventListener('change', followSystem)
+    return () => media.removeEventListener('change', followSystem)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#171428' : '#4B3FD6')
+  }, [dark])
+
+  function toggleTheme() {
+    const next = !dark
+    themeChosen.current = true
+    try { localStorage.setItem('pasado-theme', next ? 'dark' : 'light') } catch {}
+    setDark(next)
+  }
 
   useEffect(() => {
     if (!setup?.exam || !('serviceWorker' in navigator)) return
@@ -66,6 +92,10 @@ export function App() {
 
   const activeTab = setup?.exam ? requestedTab : tabs[3]
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [activeTab.id])
+
   function handleSaved(exam: Exam, subjects: Subject[]) {
     if (!setup?.exam) window.location.hash = 'today'
     setSetup({ exam, subjects })
@@ -88,7 +118,19 @@ export function App() {
         </nav>
       )}
       <main aria-labelledby="screen-title">
-        <div className="page-brand"><Brand /></div>
+        <header className="app-toolbar">
+          <div className="page-brand"><Brand /></div>
+          <div className="toolbar-actions">
+            <button type="button" className="toolbar-button" aria-label="Dark mode" aria-pressed={dark}
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggleTheme}>
+              <span aria-hidden="true">{dark ? '☀' : '☾'}</span>
+            </button>
+            <button type="button" className="toolbar-button" aria-label="Open settings" aria-haspopup="dialog" title="Settings"
+              disabled={!setup} onClick={() => settingsDialog.current?.showModal()}>
+              <span aria-hidden="true">⚙</span>
+            </button>
+          </div>
+        </header>
         {loadFailed ? (
           <>
             <h1 id="screen-title">Pasado</h1>
@@ -97,10 +139,7 @@ export function App() {
         ) : !setup ? (
           <h1 id="screen-title">Loading Pasado</h1>
         ) : activeTab.id === 'subjects' ? (
-          <>
-            <Setup exam={setup.exam} subjects={setup.subjects} onSaved={handleSaved} />
-            <DeviceSettings configured={!!setup.exam} installation={install} />
-          </>
+          <Setup exam={setup.exam} subjects={setup.subjects} onSaved={handleSaved} />
         ) : activeTab.id === 'today' && setup.exam ? (
           <Today exam={setup.exam} subjects={setup.subjects} />
         ) : activeTab.id === 'scores' && setup.exam ? (
@@ -111,6 +150,15 @@ export function App() {
           <h1 id="screen-title">{activeTab.title}</h1>
         )}
       </main>
+      {setup && (
+        <dialog ref={settingsDialog} className="settings-dialog" aria-labelledby="settings-dialog-title">
+          <header className="settings-dialog-header">
+            <h2 id="settings-dialog-title">Settings</h2>
+            <button type="button" className="toolbar-button" aria-label="Close settings" onClick={() => settingsDialog.current?.close()}>×</button>
+          </header>
+          <DeviceSettings configured={!!setup.exam} installation={install} />
+        </dialog>
+      )}
     </div>
   )
 }

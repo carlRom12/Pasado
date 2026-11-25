@@ -18,7 +18,6 @@ export function DeviceSettings({ configured, installation }: {
 
   return (
     <div className="device-settings">
-      <h2 className="device-settings-title">Settings</h2>
       {configured && <Reminders />}
       <section className="device-card" aria-labelledby="install-title">
         <h2 id="install-title">Install Pasado</h2>

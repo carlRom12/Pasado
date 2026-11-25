@@ -1608,7 +1608,7 @@ nav a[aria-current="page"] {
   font-weight: 800;
 }
 
-@media (max-width: 767px) {
+@media (min-width: 361px) and (max-width: 767px) {
   .score-form:not(:has(input:focus)) .score-save-bar {
     position: sticky;
     z-index: 1;
@@ -1839,4 +1839,152 @@ nav a[aria-current="page"] {
   .plan-complete {
     outline: 1px solid CanvasText;
   }
+}
+
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
+
+.app-toolbar .page-brand {
+  margin-bottom: 0;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.toolbar-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-indigo-text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.toolbar-button[aria-pressed="true"] {
+  background: var(--color-tint);
+}
+
+.toolbar-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(520px, calc(100% - 24px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  overscroll-behavior: contain;
+}
+
+.settings-dialog::backdrop {
+  background: #17142899;
+}
+
+.settings-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-dialog-header h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.settings-dialog .device-settings {
+  margin-top: 12px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #171428;
+  --color-surface: #221e38;
+  --color-border: #443b62;
+  --color-divider: #38314f;
+  --color-ink: #f7f2ff;
+  --color-muted: #c4bad9;
+  --color-indigo-text: #c3b7ff;
+  --color-tint: #352958;
+  --color-success: #77dcb4;
+  --color-success-tint: #1d3c35;
+  --color-caution: #ffda8d;
+  --color-caution-tint: #4c381e;
+  --color-low: #ffaaa0;
+}
+
+[data-theme="dark"] nav a[aria-current="page"] {
+  box-shadow: inset 0 0 0 1px #5a4984;
+}
+
+[data-theme="dark"] .setup-primary,
+[data-theme="dark"] .today-toast {
+  color: #fff;
+}
+
+[data-theme="dark"] .track-status--good {
+  color: #252034;
+}
+
+[data-theme="dark"] .task-toggle[aria-pressed="true"] .task-check,
+[data-theme="dark"] .plan-complete-mark {
+  color: #152e26;
+}
+
+[data-theme="dark"] .today-toast {
+  background: #302547;
+}
+
+[data-theme="dark"] .daily-task--next {
+  border-color: #8373d9;
+  background: #2e254b;
+}
+
+[data-theme="dark"] .daily-task--done {
+  border-color: #34554b;
+  background: #203631;
+}
+
+[data-theme="dark"] .plan-complete {
+  border-color: #417a68;
+  color: #abecd3;
+}
+
+[data-theme="dark"] .log-score-link,
+[data-theme="dark"] .setup-preset-card,
+[data-theme="dark"] .score-summary {
+  border-color: var(--color-border);
+  background: linear-gradient(135deg, #342853, #27213d 78%);
+}
+
+[data-theme="dark"] .trend-line,
+[data-theme="dark"] .trend-point {
+  stroke: #b6a8ff;
+}
+
+[data-theme="dark"] :focus-visible {
+  outline-color: #b6a8ff;
 }
