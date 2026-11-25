@@ -7,6 +7,7 @@ import { db } from '../data/db'
 import { isBelowMinimum, overallScore, parseScoreInput } from '../data/plan'
 import type { Exam, Score, Subject } from '../data/types'
 import { useLocalDay } from '../hooks/useLocalDay'
+import { nursingCoverageFor } from '../presets/nursingCoverage'
 
 export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) {
   const today = useLocalDay()
@@ -134,15 +135,17 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                   const value = subjectInputs[subject.id] ?? ''
                   const belowMinimum = isBelowMinimum(parseScoreInput(value), exam.minPerSubject)
                   const noteId = 'subject-minimum-note-' + index
+                  const inputId = 'subject-score-' + index
+                  const coverage = nursingCoverageFor(exam.presetId, subject.name)
                   return (
-                  <label className="score-subject" key={subject.id}>
+                  <div className="score-subject" key={subject.id}>
                     <span className="subject-dot" aria-hidden="true" style={{ backgroundColor: subject.color }} />
-                    <span className="score-subject-name">
+                    <label htmlFor={inputId} className="score-subject-name">
                       <strong>{subject.name}</strong>
                       <small>Weight {subject.weight}%</small>
-                    </span>
+                    </label>
                     <span className="score-number">
-                      <input aria-label={subject.name + ' score'} type="text"
+                      <input id={inputId} aria-label={subject.name + ' score'} type="text"
                         value={value} aria-describedby={belowMinimum ? 'score-format ' + noteId : 'score-format'}
                         onChange={(event) => setSubjectInputs({ ...subjectInputs, [subject.id]: event.target.value })}
                         placeholder="42/70" />
@@ -150,7 +153,13 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                     <span id={noteId} className="score-minimum-note" aria-live="polite">
                       {belowMinimum && <><span aria-hidden="true">⚠</span> Below the {exam.minPerSubject}% minimum</>}
                     </span>
-                  </label>
+                    {coverage && (
+                      <details className="score-coverage">
+                        <summary aria-label={'Coverage for ' + subject.name}>Coverage</summary>
+                        <p>{coverage}</p>
+                      </details>
+                    )}
+                  </div>
                   )
                 })}
               </div>

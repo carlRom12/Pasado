@@ -1511,3 +1511,23 @@ nav a[aria-current="page"] {
 .nursing-coverage dd {
   color: var(--color-muted);
 }
+
+.score-coverage {
+  grid-column: 2 / -1;
+  margin-top: -8px;
+  font-size: 0.875rem;
+}
+
+.score-coverage summary {
+  width: fit-content;
+  min-height: 44px;
+  align-content: center;
+  color: var(--color-indigo-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.score-coverage p {
+  margin-bottom: 6px;
+  color: var(--color-muted);
+}

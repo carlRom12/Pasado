@@ -6,6 +6,7 @@ import { useLocalDay } from '../hooks/useLocalDay'
 import { daysToGo } from '../data/plan'
 import type { Exam, Preset, Subject } from '../data/types'
 import nursing from '../presets/prc-nursing.json'
+import { nursingCoverageFor } from '../presets/nursingCoverage'
 import { SubjectTopics } from './SubjectTopics'
 
 const colors = [
@@ -14,13 +15,6 @@ const colors = [
 ]
 
 const presets: readonly Preset[] = [nursing]
-const nursingCoverage = [
-  'Community health nursing for individuals, families, population groups, and communities.',
-  'Maternal and child health, including adolescent care, plus human growth and development.',
-  'Medical-surgical nursing covering surgery, oxygenation, fluids and electrolytes, infection, inflammation, immune responses, and cellular changes.',
-  'Medical-surgical nursing covering nutrition, gastrointestinal care, metabolism, endocrine disorders, perception, and coordination.',
-  'Psychiatric and mental health nursing, plus emergency and critical care for patients with life-threatening conditions or acute multi-organ problems.',
-]
 
 type Props = {
   exam?: Exam
@@ -219,10 +213,10 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
               <details className="preset-sources nursing-coverage">
                 <summary>Nursing Practice I–V coverage</summary>
                 <dl>
-                  {nursing.subjects.map(({ name }, index) => (
+                  {nursing.subjects.map(({ name }) => (
                     <div key={name}>
                       <dt>{name}</dt>
-                      <dd>{nursingCoverage[index]}</dd>
+                      <dd>{nursingCoverageFor(preset.id, name)}</dd>
                     </div>
                   ))}
                 </dl>
