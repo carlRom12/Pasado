@@ -1,5 +1,5 @@
 import { liveQuery } from 'dexie'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, FormEvent, KeyboardEvent } from 'react'
 import { db } from '../data/db'
 import { useLocalDay } from '../hooks/useLocalDay'
@@ -48,6 +48,8 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [setupError, setSetupError] = useState('')
+  const examNameField = useRef<HTMLInputElement>(null)
+  const examDateField = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const subscription = liveQuery(() => db.scores.count()).subscribe({
@@ -71,6 +73,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
     setEditor(undefined)
     setSaved(false)
     setSetupError('')
+    examDateField.current?.focus()
   }
 
   const days = /^\d{4}-\d{2}-\d{2}$/.test(examDate) ? daysToGo(examDate, today) : undefined
@@ -199,7 +202,7 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
             {presets.map((item) => (
               <button key={item.id} type="button" className="editor-confirm" onClick={() => applyPreset(item)}>{item.name}</button>
             ))}
-            <p>Or start from scratch using the fields below.</p>
+            <button type="button" className="text-button" onClick={() => examNameField.current?.focus()}>Set up manually</button>
           </section>
         )}
         {preset && (
@@ -233,12 +236,12 @@ export function Setup({ exam, subjects: savedSubjects, onSaved }: Props) {
         )}
         <label className="setup-field">
           <span>Exam name</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="My board exam" required />
+          <input ref={examNameField} value={name} onChange={(event) => setName(event.target.value)} placeholder="My board exam" required />
         </label>
         <div className="setup-field-row">
           <label className="setup-field">
             <span>Exam date</span>
-            <input type="date" min={today} max="9999-12-31" value={examDate}
+            <input ref={examDateField} type="date" min={today} max="9999-12-31" value={examDate}
               onChange={(event) => setExamDate(event.target.value)} required />
           </label>
           <label className="setup-field">

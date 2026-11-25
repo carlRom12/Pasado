@@ -931,18 +931,9 @@ nav a[aria-current="page"] {
   margin: 8px 4px 0;
 }
 
-.score-form > .setup-primary {
-  margin-top: 18px;
-  cursor: pointer;
-}
-
-.score-form > .setup-primary:disabled {
+.score-save-bar .setup-primary:disabled {
   cursor: wait;
   opacity: 0.65;
-}
-
-.score-form > .setup-error {
-  margin-top: 8px;
 }
 
 .score-cancel {
@@ -1530,4 +1521,82 @@ nav a[aria-current="page"] {
 .score-coverage p {
   margin-bottom: 6px;
   color: var(--color-muted);
+}
+
+.score-subject-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 8px;
+}
+
+.score-subject-meta .score-coverage {
+  margin-top: 0;
+  flex: 1 0 auto;
+  max-width: 100%;
+}
+
+.score-subject-meta .score-coverage[open] {
+  flex-basis: 100%;
+}
+
+.score-subject-meta .score-coverage summary {
+  font-size: 0.8125rem;
+}
+
+.score-subject-meta small {
+  white-space: nowrap;
+}
+
+.score-conversion {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-indigo-text);
+  text-align: end;
+  font-weight: 700;
+}
+
+.score-save-bar {
+  margin-top: 14px;
+  padding-block: 4px;
+  background: var(--color-bg);
+}
+
+.score-save-bar .setup-primary,
+.minimum-warning button,
+.progress-action,
+.setup-fields .text-button {
+  cursor: pointer;
+}
+
+.score-save-bar .setup-error {
+  margin-bottom: 6px;
+}
+
+.daily-task--next {
+  border-color: var(--color-indigo);
+}
+
+.next-task-label {
+  color: var(--color-indigo-text);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.rebuild-notice:not(:empty) {
+  margin-bottom: 10px;
+  color: var(--color-success);
+}
+
+.device-settings-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+}
+
+@media (max-width: 767px) {
+  .score-form:not(:has(input:focus)) .score-save-bar {
+    position: sticky;
+    z-index: 1;
+    bottom: calc(61px + env(safe-area-inset-bottom));
+  }
 }

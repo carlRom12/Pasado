@@ -132,7 +132,7 @@ it('ignores future scores and uses the full budget when only recap tasks are eli
 describe('minimum subject rating', () => {
   const configured = { ...exam, minPerSubject: 60 }
   const total: Score = { ...mock, id: 'overall', total: 100, bySubject: {} }
-  const uneven: Score = { ...mock, bySubject: { fundamentals: 95, pharmacology: 55 } }
+  const uneven: Score = { ...mock, bySubject: { ...mock.bySubject, fundamentals: 95, pharmacology: 55, "medical-surgical": 85, "community-health": 85, "mental-health": 85 } }
 
   it('reports At risk even above the overall target and identifies total-only evidence', () => {
     const result = readiness([uneven, total], subjects, 75, 60)
@@ -193,4 +193,13 @@ it('accepts percentages and points earned out of points possible', () => {
   for (const invalid of ['', '1/0', '105', '-5/10', '2/', '3//4', '60abc']) {
     expect(parseScoreInput(invalid)).toBeUndefined()
   }
+})
+
+it('keeps partial mocks out of the overall trend while using them for subject risk', () => {
+  const overall = { ...mock, bySubject: {}, total: 90 }
+  const partial = { ...mock, bySubject: { fundamentals: 55 } }
+  expect(readiness([overall, partial], subjects, 75, 60)).toMatchObject({
+    label: 'Not enough scores yet', latest: 90, average: 90,
+    belowMinimumSubjects: [subjects[0]],
+  })
 })

@@ -31,7 +31,7 @@ it('generates one plan per date and preserves completion across reads', async ()
   expect((await database.getTodayPlan(now))[0].doneAt).toBe(123)
 
   const rebuilt = await database.getTodayPlan(now, true)
-  expect(rebuilt.map(({ subjectId, kind }) => [subjectId, kind])).toEqual([['a', 'focus'], ['z', 'recap']])
+  expect(rebuilt).toEqual([saved[0], expect.objectContaining({ subjectId: 'a', kind: 'focus', minutes: 15 })])
   expect(await database.getTodayPlan(tomorrow)).toEqual(next)
 })
 
@@ -58,7 +58,7 @@ it('invalidates only the current plan when study time or subjects change', async
   expect(await database.getTodayPlan(now, true)).toMatchObject([{ kind: 'recap', minutes: 60 }])
 })
 
-it('toggles task completion and rejects stale undo or writes after a rebuild', async () => {
+it('toggles task completion, rejects stale undo, and retains completion across a rebuild', async () => {
   await database.saveSetup(
     { id: 'main', name: 'Exam', date: '2026-12-01', passingMark: 75, hoursPerDay: 1 },
     [{ id: 'a', name: 'A', weight: 100, color: '#4B3FD6', order: 0 }],
@@ -74,7 +74,7 @@ it('toggles task completion and rejects stale undo or writes after a rebuild', a
   expect(await database.setTaskDone(task, 125)).toBe(true)
   expect(await database.setTaskDone(done, undefined)).toBe(false)
   await database.getTodayPlan(now, true)
-  expect(await database.setTaskDone({ ...task, doneAt: 125 }, undefined)).toBe(false)
+  expect(await database.setTaskDone({ ...task, doneAt: 125 }, undefined)).toBe(true)
 })
 
 it('saves and edits score entries without resetting their creation time', async () => {

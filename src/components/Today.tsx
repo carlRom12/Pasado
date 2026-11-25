@@ -55,7 +55,10 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
   const belowMinimum = exam.minPerSubject === undefined ? [] :
     rankSubjects(subjects, data?.scores ?? [], exam.passingMark, exam.minPerSubject)
       .filter((entry) => entry.belowMinimum).map(({ subject }) => subject)
-  const startsBelowMinimum = belowMinimum.some(({ id }) => id === tasks[0]?.subjectId)
+  const nextTask = tasks.find(({ doneAt }) => doneAt === undefined)
+  const startsBelowMinimum = belowMinimum.some(({ id }) => id === nextTask?.subjectId)
+  const canPrioritizeToday = !!nextTask || tasks.length === 0
+  const [rebuildNotice, setRebuildNotice] = useState('')
 
   async function write(operation: () => Promise<void>) {
     setBusy(true)
@@ -88,7 +91,9 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
 
   function rebuild() {
     void write(async () => {
-      await db.getTodayPlan(parseDateKey(day), true)
+      const rebuilt = await db.getTodayPlan(parseDateKey(day), true)
+      const remaining = rebuilt.filter(({ doneAt }) => doneAt === undefined).length
+      setRebuildNotice('Remaining tasks updated · ' + remaining + ' left. Completed work kept.')
       setUndo(undefined)
     })
   }
@@ -134,9 +139,12 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
         {!!belowMinimum.length && (
           <p className="minimum-warning">
             <span aria-hidden="true">⚠</span> Below the minimum in {belowMinimum.map(({ name }) => name).join(', ')}.{' '}
-            {startsBelowMinimum ? "Today's plan starts there." : "Rebuild today's plan to prioritize those subjects."}
+            {startsBelowMinimum ? "Today's plan starts there." : canPrioritizeToday
+              ? "Rebuild today's plan to prioritize those subjects." : "Today's plan is complete."}
+            {!startsBelowMinimum && canPrioritizeToday && <button type="button" className="text-button" onClick={rebuild} disabled={busy}>Rebuild plan</button>}
           </p>
         )}
+        <p className="rebuild-notice" role="status">{rebuildNotice}</p>
         {error && <p role="alert" className="setup-error">{error}</p>}
         {data ? tasks.length ? (
           <ul className="daily-tasks">
@@ -146,12 +154,13 @@ function DailyView({ exam, subjects, day }: { exam: Exam; subjects: Subject[]; d
               const topic = data.topics.find(({ id }) => id === task.topicId)
               const detail = [task.minutes + ' min', topic?.name ?? (task.kind === 'recap' ? 'Quick recap' : '')].filter(Boolean).join(' · ')
               return (
-                <li className={'daily-task' + (task.doneAt === undefined ? '' : ' daily-task--done')} key={task.id}>
+                <li className={'daily-task' + (task.doneAt !== undefined ? ' daily-task--done' : task.id === nextTask?.id ? ' daily-task--next' : '')} key={task.id}>
                   <button type="button" className="task-check" aria-label={'Complete ' + name}
                     aria-pressed={task.doneAt !== undefined} disabled={busy} onClick={() => toggle(task, name)}>
                     <span aria-hidden="true">{task.doneAt !== undefined ? '✓' : ''}</span>
                   </button>
                   <div className="task-copy">
+                    {task.id === nextTask?.id && <span className="next-task-label">Up next</span>}
                     <h3>{name}</h3>
                     <p><span className="subject-dot" style={{ backgroundColor: subject?.color }} aria-hidden="true" />{detail}</p>
                   </div>

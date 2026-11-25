@@ -3,7 +3,7 @@ import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 import { dateKey, parseDateKey } from '../data/dates'
 import { db } from '../data/db'
-import { daysToGo, isReviewDue, overallScore, rankSubjects, readiness } from '../data/plan'
+import { daysToGo, isReviewDue, overallScore, rankSubjects, readiness, scoreCoverage } from '../data/plan'
 import type { Exam, Score, Subject, Topic } from '../data/types'
 
 type ProgressData = { scores: Score[]; topics: Topic[] }
@@ -29,11 +29,13 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
 
   const points = (data?.scores ?? []).flatMap((score): Point[] => {
     const value = overallScore(score, subjects)
-    return value === undefined ? [] : [{ id: score.id, date: score.date, source: score.source, value }]
+    return value === undefined || scoreCoverage(score, subjects).partial ? [] : [{ id: score.id, date: score.date, source: score.source, value }]
   })
   const passingMark = exam.passingMark
   const minimum = exam.minPerSubject
   const summary = readiness(data?.scores ?? [], subjects, passingMark, minimum)
+  const latest = data?.scores.at(-1)
+  const latestCoverage = latest && scoreCoverage(latest, subjects)
   const ranked = rankSubjects(subjects, data?.scores ?? [], passingMark, minimum)
   const biggestGap = Math.max(0, ...ranked.map(({ gap }) => gap ?? 0))
   const today = dateKey(new Date())
@@ -55,24 +57,32 @@ export function Progress({ exam, subjects }: { exam: Exam; subjects: Subject[] }
                 </div>
                 <div className="readiness-score">
                   <strong><span className="sr-only">Latest overall score </span>{summary.latest === undefined ? '–' : percentage(summary.latest)}</strong>
-                  <p>of {passingMark}% to pass</p>
+                  <p>{summary.latest === undefined ? 'Overall target ' + passingMark + '%' : 'of ' + passingMark + '% to pass'}</p>
                 </div>
               </div>
               {summary.label === 'At risk' && (
                 <p className="minimum-warning">Below the {minimum}% minimum in: {summary.belowMinimumSubjects.map(({ name }) => name).join(', ')}</p>
               )}
 
-              {points.length ? <ScoreTrend points={points} passingMark={passingMark} /> : (
-                <p className="progress-empty">Log a mock exam score to start your trend.</p>
+              {latestCoverage?.partial && (
+                <p className="progress-empty">Latest result is a partial mock · {latestCoverage.entered} of {latestCoverage.total} subjects. It contributes to subject averages.</p>
+              )}
+              {points.length >= 2 ? <ScoreTrend points={points} passingMark={passingMark} /> : (
+                <p className="progress-empty"><a className="text-button progress-action" href="#scores">
+                  {points.length ? 'Log another mock' : 'Log a full mock or overall score'}
+                </a></p>
               )}
               <p className="trend-note">Based on the scores you entered. It's a trend, not a promise.</p>
-              <p className="trend-note">Different mock exams have different difficulty.</p>
-              {minimum !== undefined && (
-                <p className="trend-note">Pasado checks the minimum using your last three recorded scores for each subject. Subjects without scores have an unknown rating.</p>
-              )}
               {minimum !== undefined && summary.usesTotalOnly && (
-                <p className="trend-note">Total-only scores can't be checked against the minimum per subject.</p>
+                <p className="trend-note">Subject minimums unverified for total-only scores.</p>
               )}
+              <details className="trend-values">
+                <summary>How Pasado reads your scores</summary>
+                <p className="trend-note">Different mock exams have different difficulty. Partial mocks contribute to subject averages. Full mocks and total-only scores contribute to the overall trend.</p>
+                {minimum !== undefined && (
+                  <p className="trend-note">Pasado checks the minimum using your last three recorded scores for each subject. Subjects without scores have an unknown rating.</p>
+                )}
+              </details>
             </section>
 
             <section className="study-priorities" aria-labelledby="priority-title">

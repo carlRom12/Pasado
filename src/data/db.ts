@@ -98,7 +98,12 @@ export class PasadoDatabase extends Dexie {
         this.scores.toArray(),
         this.topics.toArray(),
       ])
-      const plan = buildDailyPlan(exam, subjects, scores, topics, today)
+      const completed = rebuild ? saved.filter((task) => task.doneAt !== undefined) : []
+      const finishedSubjects = new Set(completed.map(({ subjectId }) => subjectId))
+      const remainingMinutes = Math.max(0, exam.hoursPerDay * 60 - completed.reduce((sum, task) => sum + task.minutes, 0))
+      const remainingPlan = buildDailyPlan({ ...exam, hoursPerDay: remainingMinutes / 60 },
+        subjects.filter(({ id }) => !finishedSubjects.has(id)), scores, topics, today, 4 - completed.length)
+      const plan = [...completed, ...remainingPlan]
       if (rebuild) await todayTasks.delete()
       await this.tasks.bulkAdd(plan)
       if (subjects.length) await this.plannedDays.put({ date: today })

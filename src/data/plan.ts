@@ -53,6 +53,12 @@ export function overallScore(score: Score, subjects: readonly Subject[]): number
   return weight > 0 ? weighted / weight : undefined
 }
 
+export function scoreCoverage(score: Pick<Score, 'bySubject'>, subjects: readonly Subject[]) {
+  const entered = subjects.filter(({ id }) => Object.hasOwn(score.bySubject, id)).length
+  const total = subjects.length
+  return { entered, total, partial: Object.keys(score.bySubject).length > 0 && (entered < total || total === 0) }
+}
+
 export function isBelowMinimum(average: number | undefined, minPerSubject: number | undefined): boolean {
   return average !== undefined && minPerSubject !== undefined && average < minPerSubject
 }
@@ -116,9 +122,10 @@ export function buildDailyPlan(
   scores: readonly Score[],
   topics: readonly Topic[],
   today: string,
+  maxTasks = 4,
 ): Task[] {
   const budget = Math.round(exam.hoursPerDay * 60 / blockMinutes)
-  const limit = Math.min(budget, 4)
+  const limit = Math.min(budget, maxTasks)
   if (limit < 1) return []
 
   const ranked = rankSubjects(subjects, scores.filter((score) => score.date <= today), exam.passingMark, exam.minPerSubject)
@@ -174,6 +181,7 @@ export function trackingStatus(tasks: readonly Task[], today: string) {
 
 export function readiness(scores: readonly Score[], subjects: readonly Subject[], passingMark: number, minPerSubject?: number) {
   const recent = newestFirst(scores)
+    .filter((score) => !scoreCoverage(score, subjects).partial)
     .map((score) => ({ score, value: overallScore(score, subjects) }))
     .filter(({ value }) => value !== undefined)
     .slice(0, 3)

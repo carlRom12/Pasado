@@ -18,6 +18,7 @@ export function DeviceSettings({ configured, installation }: {
 
   return (
     <div className="device-settings">
+      <h2 className="device-settings-title">Settings</h2>
       {configured && <Reminders />}
       <section className="device-card" aria-labelledby="install-title">
         <h2 id="install-title">Install Pasado</h2>
@@ -108,14 +109,16 @@ function Reminders() {
 }
 
 function BackupSettings({ configured }: { configured: boolean }) {
-  const [pending, setPending] = useState<{ name: string; text: string }>()
+  const [pending, setPending] = useState<{ name: string; text: string; exam: string; scoreCount: number }>()
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [startingNew, setStartingNew] = useState(false)
   const fileField = useRef<HTMLInputElement>(null)
 
   async function download() {
     setError('')
+    setNotice('')
     setBusy(true)
     try {
       const backup = await exportBackup(db)
@@ -126,6 +129,7 @@ function BackupSettings({ configured }: { configured: boolean }) {
       document.body.append(link)
       link.click()
       link.remove()
+      setNotice('Backup download started.')
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch {
       setError('Could not export your backup.')
@@ -139,13 +143,14 @@ function BackupSettings({ configured }: { configured: boolean }) {
     event.target.value = ''
     if (!file) return
     setError('')
+    setNotice('')
     setPending(undefined)
     setStartingNew(false)
     setBusy(true)
     try {
       const text = await file.text()
-      parseBackup(text)
-      setPending({ name: file.name, text })
+      const backup = parseBackup(text)
+      setPending({ name: file.name, text, exam: backup.exam?.name ?? 'No exam set up', scoreCount: backup.scores.length })
     } catch {
       setError('Choose a valid JSON backup exported by Pasado.')
     } finally {
@@ -184,6 +189,7 @@ function BackupSettings({ configured }: { configured: boolean }) {
     <section className="device-card" aria-labelledby="backup-title">
       <h2 id="backup-title">Your data</h2>
       <p>Data stays on this device. Export a backup before changing phones.</p>
+      {notice && <p role="status">{notice}</p>}
       <div className="device-actions">
         <button type="button" className="editor-confirm" disabled={busy} onClick={() => void download()}>Export backup</button>
         <button type="button" className="editor-confirm" disabled={busy} onClick={() => fileField.current?.click()}>Import backup</button>
@@ -206,6 +212,7 @@ function BackupSettings({ configured }: { configured: boolean }) {
       {pending && (
         <div className="restore-warning">
           <p>Restoring <strong>{pending.name}</strong> will replace all Pasado data on this device.</p>
+          <p><strong>{pending.exam}</strong> · {pending.scoreCount} {pending.scoreCount === 1 ? 'score' : 'scores'}</p>
           <div className="device-actions">
             <button type="button" className="text-button" disabled={busy} onClick={() => setPending(undefined)}>Cancel</button>
             <button type="button" className="editor-confirm" disabled={busy} onClick={() => void restore()}>Restore backup</button>

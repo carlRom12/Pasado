@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { parseDateKey } from '../data/dates'
 import { db } from '../data/db'
-import { isBelowMinimum, overallScore, parseScoreInput } from '../data/plan'
+import { isBelowMinimum, overallScore, parseScoreInput, scoreCoverage } from '../data/plan'
 import type { Exam, Score, Subject } from '../data/types'
 import { useLocalDay } from '../hooks/useLocalDay'
 import { nursingCoverageFor } from '../presets/nursingCoverage'
@@ -49,6 +49,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
     || (showTotal && total.trim() !== '' && enteredTotal === undefined)
   const preview = invalidScore
     ? undefined : overallScore({ id: '', source, date, createdAt: 0, bySubject: subjectScores, total: enteredTotal }, subjects)
+  const coverage = scoreCoverage({ bySubject: subjectScores }, subjects)
 
   function startEditing(score?: Score) {
     setEditing(score)
@@ -140,25 +141,30 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                   return (
                   <div className="score-subject" key={subject.id}>
                     <span className="subject-dot" aria-hidden="true" style={{ backgroundColor: subject.color }} />
-                    <label htmlFor={inputId} className="score-subject-name">
-                      <strong>{subject.name}</strong>
-                      <small>Weight {subject.weight}%</small>
-                    </label>
+                    <div className="score-subject-name">
+                      <label htmlFor={inputId}><strong>{subject.name}</strong></label>
+                      <div className="score-subject-meta">
+                        <small>Weight {subject.weight}%</small>
+                        {coverage && (
+                          <details className="score-coverage">
+                            <summary aria-label={'Coverage for ' + subject.name}>Coverage</summary>
+                            <p>{coverage}</p>
+                          </details>
+                        )}
+                      </div>
+                    </div>
                     <span className="score-number">
                       <input id={inputId} aria-label={subject.name + ' score'} type="text"
                         value={value} aria-describedby={belowMinimum ? 'score-format ' + noteId : 'score-format'}
                         onChange={(event) => setSubjectInputs({ ...subjectInputs, [subject.id]: event.target.value })}
-                        placeholder="42/70" />
+                        placeholder="–" />
+                      {value.includes('/') && parseScoreInput(value) !== undefined && (
+                        <small className="score-conversion">{Number(parseScoreInput(value)?.toFixed(2))}%</small>
+                      )}
                     </span>
                     <span id={noteId} className="score-minimum-note" aria-live="polite">
                       {belowMinimum && <><span aria-hidden="true">⚠</span> Below the {exam.minPerSubject}% minimum</>}
                     </span>
-                    {coverage && (
-                      <details className="score-coverage">
-                        <summary aria-label={'Coverage for ' + subject.name}>Coverage</summary>
-                        <p>{coverage}</p>
-                      </details>
-                    )}
                   </div>
                   )
                 })}
@@ -168,13 +174,14 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
 
           <div className="score-summary">
             <div>
-              <h2 className="score-caption">{showTotal ? 'Overall score' : 'Overall (weighted)'}</h2>
-              <p>Passing mark is {exam.passingMark}%</p>
+              <h2 className="score-caption">{showTotal ? 'Overall score' : coverage.partial ? 'Partial mock' : 'Overall (weighted)'}</h2>
+              <p>{!showTotal && coverage.partial ? coverage.entered + ' of ' + coverage.total + ' subjects' : 'Passing mark is ' + exam.passingMark + '%'}</p>
             </div>
             {showTotal ? (
               <label className="score-number score-total">
-                <input aria-label="Overall score" aria-describedby="score-format" type="text" placeholder="42/70"
+                <input aria-label="Overall score" aria-describedby="score-format" type="text" placeholder="–"
                   value={total} onChange={(event) => setTotal(event.target.value)} />
+                {total.includes('/') && enteredTotal !== undefined && <small className="score-conversion">{Number(enteredTotal.toFixed(2))}%</small>}
               </label>
             ) : (
               <output aria-label="Weighted overall score" aria-live="polite">{preview === undefined ? '–' : Math.round(preview) + '%'}</output>
@@ -186,10 +193,12 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
           )}
         </fieldset>
 
-        {error && <p role="alert" className="setup-error">{error}</p>}
-        <button type="submit" className="setup-primary" disabled={busy}>
-          {busy ? 'Saving…' : editing ? 'Save changes' : 'Save score'}
-        </button>
+        <div className="score-save-bar">
+          {error && <p role="alert" className="setup-error">{error}</p>}
+          <button type="submit" className="setup-primary" disabled={busy}>
+            {busy ? 'Saving…' : editing ? 'Save changes' : 'Save score'}
+          </button>
+        </div>
         {editing && <button type="button" className="text-button score-cancel" disabled={busy} onClick={() => startEditing()}>Cancel edit</button>}
       </form>
 
@@ -203,6 +212,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
           <ul className="score-card recent-score-list">
             {scores.map((score) => {
               const overall = overallScore(score, subjects)
+                const coverage = scoreCoverage(score, subjects)
               const dateLabel = format(parseDateKey(score.date), 'MMM d, yyyy')
               return (
                 <li key={score.id}>
@@ -210,6 +220,7 @@ export function Scores({ exam, subjects }: { exam: Exam; subjects: Subject[] }) 
                     <div className="recent-score-copy">
                       <strong>{score.source}</strong>
                       <time dateTime={score.date}>{dateLabel}</time>
+                      {coverage.partial && <small>Partial mock · {coverage.entered} of {coverage.total} subjects</small>}
                     </div>
                     <span className="recent-score-value">{overall === undefined ? '–' : Math.round(overall) + '%'}</span>
                   </div>
